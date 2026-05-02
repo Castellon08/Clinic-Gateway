@@ -15,11 +15,19 @@ async function generateInvoiceNumber(): Promise<string> {
   return `INV-${new Date().getFullYear()}-${num}`;
 }
 
+function applyMarkup(items: Array<{ description: string; quantity: number; unitPrice: number }>, markupPercent: number) {
+  const percent = Number.isFinite(markupPercent) ? Math.max(0, markupPercent) : 0;
+  return items.map((item) => {
+    const baseTotal = Number(item.quantity) * Number(item.unitPrice);
+    const total = baseTotal + baseTotal * (percent / 100);
+    return { ...item, baseTotal, total };
+  });
+}
+
 router.get("/invoices", requireAuth, async (req: AuthRequest, res) => {
   const { patientId, status, dateFrom, dateTo } = req.query as Record<string, string>;
   const conditions: ReturnType<typeof eq | typeof gte | typeof lte>[] = [];
 
-  // Dentist role: only see invoices for their own patients
   if (req.user?.role === "dentist") {
     const dentistId = req.user.userId;
     const patientIds = (await db.selectDistinct({ patientId: appointmentsTable.patientId })
@@ -50,21 +58,27 @@ router.get("/invoices", requireAuth, async (req: AuthRequest, res) => {
   res.json(rows.map(r => ({ ...r.invoice, patient: r.patient })));
 });
 
-router.post("/invoices", requireAuth, async (req, res) => {
-  const { patientId, items, appointmentId, notes, paymentMethod, status = "pending" } = req.body;
+router.post("/invoices", requireAuth, async (req: AuthRequest, res) => {
+  const { patientId, items, appointmentId, notes, paymentMethod, status = "pending", markupPercent = 0 } = req.body;
   if (!patientId || !items?.length) { res.status(400).json({ error: "patientId and items are required" }); return; }
-  const invoiceItems = items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
-    ...item, total: item.quantity * item.unitPrice,
-  }));
+  const effectiveMarkup = req.user?.role === "admin" ? Number(markupPercent) : 0;
+  const invoiceItems = applyMarkup(items, effectiveMarkup);
   const subtotal = invoiceItems.reduce((sum: number, i: { total: number }) => sum + i.total, 0);
   const invoiceNumber = await generateInvoiceNumber();
   const [invoice] = await db.insert(invoicesTable).values({
-    patientId, appointmentId, invoiceNumber, items: invoiceItems,
-    subtotal: String(subtotal), total: String(subtotal), status, paymentMethod, notes,
+    patientId,
+    appointmentId,
+    invoiceNumber,
+    items: invoiceItems.map(({ baseTotal, ...item }) => item),
+    subtotal: String(subtotal),
+    total: String(subtotal),
+    status,
+    paymentMethod,
+    notes,
     paidAt: status === "paid" ? new Date() : undefined,
   }).returning();
   const [patient] = await db.select(buildPatientSelect()).from(patientsTable).where(eq(patientsTable.id, invoice.patientId));
-  res.status(201).json({ ...invoice, patient });
+  res.status(201).json({ ...invoice, patient, markupPercent: effectiveMarkup });
 });
 
 router.get("/invoices/:id", requireAuth, async (req, res) => {
@@ -76,18 +90,17 @@ router.get("/invoices/:id", requireAuth, async (req, res) => {
   res.json({ ...row.invoice, patient: row.patient });
 });
 
-router.put("/invoices/:id", requireAuth, async (req, res) => {
-  const { status, paymentMethod, notes, items } = req.body;
+router.put("/invoices/:id", requireAuth, async (req: AuthRequest, res) => {
+  const { status, paymentMethod, notes, items, markupPercent } = req.body;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (status !== undefined) updates.status = status;
   if (paymentMethod !== undefined) updates.paymentMethod = paymentMethod;
   if (notes !== undefined) updates.notes = notes;
   if (items !== undefined) {
-    const invoiceItems = items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
-      ...item, total: item.quantity * item.unitPrice,
-    }));
+    const effectiveMarkup = req.user?.role === "admin" ? Number(markupPercent) : 0;
+    const invoiceItems = applyMarkup(items, effectiveMarkup);
     const subtotal = invoiceItems.reduce((sum: number, i: { total: number }) => sum + i.total, 0);
-    updates.items = invoiceItems;
+    updates.items = invoiceItems.map(({ baseTotal, ...item }) => item);
     updates.subtotal = String(subtotal);
     updates.total = String(subtotal);
   }
