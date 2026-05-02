@@ -3,20 +3,36 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Clínica Odontológica Argüello - API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: users
+    description: User management
+  - name: patients
+    description: Patient management
+  - name: appointments
+    description: Appointment scheduling
+  - name: clinical-records
+    description: Clinical records and treatment history
+  - name: invoices
+    description: Billing and invoices
+  - name: inventory
+    description: Supplies inventory
+  - name: dashboard
+    description: Dashboard and reporting aggregates
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +40,881 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+
+  # USERS
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all system users
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a new system user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: User deleted
+
+  # PATIENTS
+  /patients:
+    get:
+      operationId: listPatients
+      tags: [patients]
+      summary: List all patients with optional search
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name, cedula or phone
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated list of patients
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientsListResponse"
+    post:
+      operationId: createPatient
+      tags: [patients]
+      summary: Register a new patient
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePatientBody"
+      responses:
+        "201":
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+
+  /patients/{id}:
+    get:
+      operationId: getPatient
+      tags: [patients]
+      summary: Get patient by ID with full record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientDetail"
+    put:
+      operationId: updatePatient
+      tags: [patients]
+      summary: Update patient information
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePatientBody"
+      responses:
+        "200":
+          description: Patient updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+    delete:
+      operationId: deletePatient
+      tags: [patients]
+      summary: Delete a patient record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Patient deleted
+
+  # APPOINTMENTS
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments with optional date/status/dentist filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, completed, cancelled, no_show]
+        - name: dentistId
+          in: query
+          schema:
+            type: integer
+        - name: patientId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentWithDetails"
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Schedule a new appointment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppointmentBody"
+      responses:
+        "201":
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+        "409":
+          description: Time slot conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /appointments/{id}:
+    get:
+      operationId: getAppointment
+      tags: [appointments]
+      summary: Get appointment by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Appointment found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+    put:
+      operationId: updateAppointment
+      tags: [appointments]
+      summary: Update an appointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppointmentBody"
+      responses:
+        "200":
+          description: Appointment updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+    delete:
+      operationId: deleteAppointment
+      tags: [appointments]
+      summary: Delete an appointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Appointment deleted
+
+  /appointments/availability:
+    get:
+      operationId: checkAvailability
+      tags: [appointments]
+      summary: Check available time slots for a dentist on a given date
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dentistId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Available time slots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResponse"
+
+  # CLINICAL RECORDS
+  /clinical-records:
+    get:
+      operationId: listClinicalRecords
+      tags: [clinical-records]
+      summary: List clinical records with optional patient filter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: patientId
+          in: query
+          schema:
+            type: integer
+        - name: dentistId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of clinical records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClinicalRecordWithDetails"
+    post:
+      operationId: createClinicalRecord
+      tags: [clinical-records]
+      summary: Create a new clinical record entry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClinicalRecordBody"
+      responses:
+        "201":
+          description: Clinical record created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicalRecordWithDetails"
+
+  /clinical-records/{id}:
+    get:
+      operationId: getClinicalRecord
+      tags: [clinical-records]
+      summary: Get clinical record by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clinical record found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicalRecordWithDetails"
+    put:
+      operationId: updateClinicalRecord
+      tags: [clinical-records]
+      summary: Update a clinical record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClinicalRecordBody"
+      responses:
+        "200":
+          description: Clinical record updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicalRecordWithDetails"
+    delete:
+      operationId: deleteClinicalRecord
+      tags: [clinical-records]
+      summary: Delete a clinical record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # INVOICES
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [invoices]
+      summary: List invoices with optional filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: patientId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, paid, cancelled]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InvoiceWithDetails"
+    post:
+      operationId: createInvoice
+      tags: [invoices]
+      summary: Create a new invoice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceBody"
+      responses:
+        "201":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceWithDetails"
+
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      tags: [invoices]
+      summary: Get invoice by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invoice found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceWithDetails"
+    put:
+      operationId: updateInvoice
+      tags: [invoices]
+      summary: Update invoice (e.g. mark as paid)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceBody"
+      responses:
+        "200":
+          description: Invoice updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceWithDetails"
+    delete:
+      operationId: deleteInvoice
+      tags: [invoices]
+      summary: Delete an invoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Invoice deleted
+
+  # INVENTORY
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      summary: List all inventory items
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      summary: Create a new inventory item
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInventoryItemBody"
+      responses:
+        "201":
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  /inventory/{id}:
+    get:
+      operationId: getInventoryItem
+      tags: [inventory]
+      summary: Get inventory item by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Item found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+    put:
+      operationId: updateInventoryItem
+      tags: [inventory]
+      summary: Update an inventory item
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInventoryItemBody"
+      responses:
+        "200":
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+    delete:
+      operationId: deleteInventoryItem
+      tags: [inventory]
+      summary: Delete an inventory item
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Item deleted
+
+  /inventory/{id}/adjust:
+    post:
+      operationId: adjustInventory
+      tags: [inventory]
+      summary: Adjust inventory quantity (add or subtract stock)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdjustInventoryBody"
+      responses:
+        "200":
+          description: Inventory adjusted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  # DASHBOARD
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get key metrics summary for today and overall
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard summary metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/appointments-today:
+    get:
+      operationId: getAppointmentsToday
+      tags: [dashboard]
+      summary: Get all appointments for today with patient and dentist details
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Today's appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentWithDetails"
+
+  /dashboard/recent-patients:
+    get:
+      operationId: getRecentPatients
+      tags: [dashboard]
+      summary: Get recently registered or attended patients
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Recent patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Patient"
+
+  /dashboard/revenue-by-month:
+    get:
+      operationId: getRevenueByMonth
+      tags: [dashboard]
+      summary: Monthly revenue aggregation for the current year
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Monthly revenue data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonthlyRevenue"
+
+  /dashboard/low-stock-alerts:
+    get:
+      operationId: getLowStockAlerts
+      tags: [dashboard]
+      summary: Get inventory items below minimum quantity threshold
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Low stock items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +924,701 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    # AUTH
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - token
+        - user
+
+    # USERS
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, receptionist, dentist]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - role
+        - isActive
+        - createdAt
+
+    CreateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [admin, receptionist, dentist]
+      required:
+        - name
+        - email
+        - password
+        - role
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, receptionist, dentist]
+        isActive:
+          type: boolean
+        password:
+          type: string
+
+    # PATIENTS
+    Patient:
+      type: object
+      properties:
+        id:
+          type: integer
+        cedula:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [male, female, other]
+        phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        bloodType:
+          type: string
+        allergies:
+          type: string
+        medicalNotes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - firstName
+        - lastName
+        - createdAt
+
+    PatientDetail:
+      allOf:
+        - $ref: "#/components/schemas/Patient"
+        - type: object
+          properties:
+            appointments:
+              type: array
+              items:
+                $ref: "#/components/schemas/AppointmentWithDetails"
+            clinicalRecords:
+              type: array
+              items:
+                $ref: "#/components/schemas/ClinicalRecordWithDetails"
+            invoices:
+              type: array
+              items:
+                $ref: "#/components/schemas/InvoiceWithDetails"
+
+    PatientsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Patient"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    CreatePatientBody:
+      type: object
+      properties:
+        cedula:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [male, female, other]
+        phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        bloodType:
+          type: string
+        allergies:
+          type: string
+        medicalNotes:
+          type: string
+      required:
+        - firstName
+        - lastName
+
+    # APPOINTMENTS
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        patientId:
+          type: integer
+        dentistId:
+          type: integer
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        durationMinutes:
+          type: integer
+          default: 30
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled, no_show]
+        reason:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - patientId
+        - dentistId
+        - appointmentDate
+        - appointmentTime
+        - status
+        - createdAt
+
+    AppointmentWithDetails:
+      allOf:
+        - $ref: "#/components/schemas/Appointment"
+        - type: object
+          properties:
+            patient:
+              $ref: "#/components/schemas/Patient"
+            dentist:
+              $ref: "#/components/schemas/User"
+
+    CreateAppointmentBody:
+      type: object
+      properties:
+        patientId:
+          type: integer
+        dentistId:
+          type: integer
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        durationMinutes:
+          type: integer
+          default: 30
+        reason:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled, no_show]
+          default: pending
+      required:
+        - patientId
+        - dentistId
+        - appointmentDate
+        - appointmentTime
+
+    UpdateAppointmentBody:
+      type: object
+      properties:
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        durationMinutes:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled, no_show]
+        reason:
+          type: string
+        notes:
+          type: string
+        dentistId:
+          type: integer
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        dentistId:
+          type: integer
+        availableSlots:
+          type: array
+          items:
+            type: string
+        bookedSlots:
+          type: array
+          items:
+            type: string
+      required:
+        - date
+        - dentistId
+        - availableSlots
+        - bookedSlots
+
+    # CLINICAL RECORDS
+    ClinicalRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        patientId:
+          type: integer
+        dentistId:
+          type: integer
+        appointmentId:
+          type: integer
+        visitDate:
+          type: string
+          format: date
+        chiefComplaint:
+          type: string
+        diagnosis:
+          type: string
+        treatment:
+          type: string
+        toothNumbers:
+          type: string
+        observations:
+          type: string
+        nextVisitNotes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - patientId
+        - dentistId
+        - visitDate
+        - diagnosis
+        - treatment
+        - createdAt
+
+    ClinicalRecordWithDetails:
+      allOf:
+        - $ref: "#/components/schemas/ClinicalRecord"
+        - type: object
+          properties:
+            patient:
+              $ref: "#/components/schemas/Patient"
+            dentist:
+              $ref: "#/components/schemas/User"
+
+    CreateClinicalRecordBody:
+      type: object
+      properties:
+        patientId:
+          type: integer
+        dentistId:
+          type: integer
+        appointmentId:
+          type: integer
+        visitDate:
+          type: string
+          format: date
+        chiefComplaint:
+          type: string
+        diagnosis:
+          type: string
+        treatment:
+          type: string
+        toothNumbers:
+          type: string
+        observations:
+          type: string
+        nextVisitNotes:
+          type: string
+      required:
+        - patientId
+        - dentistId
+        - visitDate
+        - diagnosis
+        - treatment
+
+    UpdateClinicalRecordBody:
+      type: object
+      properties:
+        visitDate:
+          type: string
+          format: date
+        chiefComplaint:
+          type: string
+        diagnosis:
+          type: string
+        treatment:
+          type: string
+        toothNumbers:
+          type: string
+        observations:
+          type: string
+        nextVisitNotes:
+          type: string
+
+    # INVOICES
+    InvoiceItem:
+      type: object
+      properties:
+        description:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        total:
+          type: number
+      required:
+        - description
+        - quantity
+        - unitPrice
+        - total
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        patientId:
+          type: integer
+        appointmentId:
+          type: integer
+        invoiceNumber:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceItem"
+        subtotal:
+          type: number
+        total:
+          type: number
+        status:
+          type: string
+          enum: [pending, paid, cancelled]
+        paymentMethod:
+          type: string
+          enum: [cash, card, transfer]
+        notes:
+          type: string
+        issuedAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - patientId
+        - invoiceNumber
+        - items
+        - subtotal
+        - total
+        - status
+        - createdAt
+
+    InvoiceWithDetails:
+      allOf:
+        - $ref: "#/components/schemas/Invoice"
+        - type: object
+          properties:
+            patient:
+              $ref: "#/components/schemas/Patient"
+
+    CreateInvoiceBody:
+      type: object
+      properties:
+        patientId:
+          type: integer
+        appointmentId:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+            required:
+              - description
+              - quantity
+              - unitPrice
+        notes:
+          type: string
+        paymentMethod:
+          type: string
+          enum: [cash, card, transfer]
+        status:
+          type: string
+          enum: [pending, paid, cancelled]
+      required:
+        - patientId
+        - items
+
+    UpdateInvoiceBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, paid, cancelled]
+        paymentMethod:
+          type: string
+          enum: [cash, card, transfer]
+        notes:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+
+    # INVENTORY
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        quantity:
+          type: number
+        minQuantity:
+          type: number
+        unitCost:
+          type: number
+        supplier:
+          type: string
+        notes:
+          type: string
+        isLowStock:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - unit
+        - quantity
+        - minQuantity
+        - createdAt
+
+    CreateInventoryItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        quantity:
+          type: number
+        minQuantity:
+          type: number
+        unitCost:
+          type: number
+        supplier:
+          type: string
+        notes:
+          type: string
+      required:
+        - name
+        - unit
+        - quantity
+        - minQuantity
+
+    UpdateInventoryItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        minQuantity:
+          type: number
+        unitCost:
+          type: number
+        supplier:
+          type: string
+        notes:
+          type: string
+
+    AdjustInventoryBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [in, out]
+        quantity:
+          type: number
+        reason:
+          type: string
+      required:
+        - type
+        - quantity
+
+    # DASHBOARD
+    DashboardSummary:
+      type: object
+      properties:
+        totalPatients:
+          type: integer
+        totalAppointmentsToday:
+          type: integer
+        completedAppointmentsToday:
+          type: integer
+        pendingAppointmentsToday:
+          type: integer
+        totalRevenueThisMonth:
+          type: number
+        totalPendingInvoices:
+          type: integer
+        pendingInvoicesAmount:
+          type: number
+        lowStockCount:
+          type: integer
+        newPatientsThisMonth:
+          type: integer
+        appointmentsThisWeek:
+          type: integer
+      required:
+        - totalPatients
+        - totalAppointmentsToday
+        - completedAppointmentsToday
+        - pendingAppointmentsToday
+        - totalRevenueThisMonth
+        - totalPendingInvoices
+        - pendingInvoicesAmount
+        - lowStockCount
+        - newPatientsThisMonth
+        - appointmentsThisWeek
+
+    MonthlyRevenue:
+      type: object
+      properties:
+        month:
+          type: string
+        monthNumber:
+          type: integer
+        revenue:
+          type: number
+        invoiceCount:
+          type: integer
+      required:
+        - month
+        - monthNumber
+        - revenue
+        - invoiceCount
