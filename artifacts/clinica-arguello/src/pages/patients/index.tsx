@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useListPatients } from "@workspace/api-client-react";
+import { useGetMe } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,10 +20,13 @@ const GENDER_LABELS: Record<string, string> = { male: "M", female: "F", other: "
 export default function PatientsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+  const { data: me } = useGetMe();
 
-  const { data: patients, isLoading } = useListPatients(
+  const { data: response, isLoading } = useListPatients(
     debouncedSearch ? { search: debouncedSearch } : undefined
   );
+
+  const patients = response?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -31,12 +35,14 @@ export default function PatientsPage() {
           <h1 className="text-2xl font-bold text-foreground">Pacientes</h1>
           <p className="text-sm text-muted-foreground mt-1">Registro de pacientes activos</p>
         </div>
-        <Link href="/patients/new">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Paciente
-          </Button>
-        </Link>
+        {me?.role !== "dentist" && (
+          <Link href="/patients/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Paciente
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="relative">
@@ -53,13 +59,13 @@ export default function PatientsPage() {
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
         </div>
-      ) : !patients?.length ? (
+      ) : !patients.length ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
               {search ? `Sin resultados para "${search}"` : "No hay pacientes registrados"}
             </p>
-            {!search && (
+            {!search && me?.role !== "dentist" && (
               <Link href="/patients/new">
                 <Button variant="link" className="mt-2">Registrar el primer paciente</Button>
               </Link>
@@ -108,7 +114,9 @@ export default function PatientsPage() {
               </div>
             </Link>
           ))}
-          <p className="text-xs text-center text-muted-foreground pt-2">{patients.length} paciente{patients.length !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-center text-muted-foreground pt-2">
+            {response?.total ?? patients.length} paciente{(response?.total ?? patients.length) !== 1 ? "s" : ""}
+          </p>
         </div>
       )}
     </div>

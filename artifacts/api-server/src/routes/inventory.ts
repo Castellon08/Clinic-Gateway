@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, inventoryTable } from "@workspace/db";
-import { eq, ilike, sql, lte } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { eq, ilike, sql } from "drizzle-orm";
+import { requireAuth, AuthRequest } from "../lib/auth";
 
 const router = Router();
 
@@ -15,52 +15,52 @@ function formatItem(item: typeof inventoryTable.$inferSelect) {
   };
 }
 
-router.get("/inventory", requireAuth, async (req, res) => {
+router.get("/inventory", requireAuth, async (req: AuthRequest, res) => {
+  // Dentists cannot access inventory
+  if (req.user?.role === "dentist") {
+    res.status(403).json({ error: "Forbidden", message: "Dentists cannot access inventory" });
+    return;
+  }
   const { search, lowStock } = req.query as Record<string, string>;
   let query = db.select().from(inventoryTable);
-  if (search) {
-    query = query.where(ilike(inventoryTable.name, `%${search}%`)) as typeof query;
-  }
-  if (lowStock === "true") {
-    query = query.where(sql`${inventoryTable.quantity}::numeric <= ${inventoryTable.minQuantity}::numeric`) as typeof query;
-  }
+  if (search) query = query.where(ilike(inventoryTable.name, `%${search}%`)) as typeof query;
+  if (lowStock === "true") query = query.where(sql`${inventoryTable.quantity}::numeric <= ${inventoryTable.minQuantity}::numeric`) as typeof query;
   const items = await query.orderBy(inventoryTable.name);
   res.json(items.map(formatItem));
 });
 
-router.post("/inventory", requireAuth, async (req, res) => {
+router.post("/inventory", requireAuth, async (req: AuthRequest, res) => {
+  if (req.user?.role === "dentist") { res.status(403).json({ error: "Forbidden" }); return; }
   const { name, unit, quantity = 0, minQuantity = 0, ...rest } = req.body;
-  if (!name || !unit) {
-    res.status(400).json({ error: "name and unit are required" });
-    return;
-  }
+  if (!name || !unit) { res.status(400).json({ error: "name and unit are required" }); return; }
   const [item] = await db.insert(inventoryTable).values({ name, unit, quantity: String(quantity), minQuantity: String(minQuantity), ...rest }).returning();
   res.status(201).json(formatItem(item));
 });
 
-router.get("/inventory/:id", requireAuth, async (req, res) => {
+router.get("/inventory/:id", requireAuth, async (req: AuthRequest, res) => {
+  if (req.user?.role === "dentist") { res.status(403).json({ error: "Forbidden" }); return; }
   const [item] = await db.select().from(inventoryTable).where(eq(inventoryTable.id, Number(req.params.id)));
   if (!item) { res.status(404).json({ error: "Not found" }); return; }
   res.json(formatItem(item));
 });
 
-router.put("/inventory/:id", requireAuth, async (req, res) => {
+router.put("/inventory/:id", requireAuth, async (req: AuthRequest, res) => {
+  if (req.user?.role === "dentist") { res.status(403).json({ error: "Forbidden" }); return; }
   const [item] = await db.update(inventoryTable).set({ ...req.body, updatedAt: new Date() }).where(eq(inventoryTable.id, Number(req.params.id))).returning();
   if (!item) { res.status(404).json({ error: "Not found" }); return; }
   res.json(formatItem(item));
 });
 
-router.delete("/inventory/:id", requireAuth, async (req, res) => {
+router.delete("/inventory/:id", requireAuth, async (req: AuthRequest, res) => {
+  if (req.user?.role === "dentist") { res.status(403).json({ error: "Forbidden" }); return; }
   await db.delete(inventoryTable).where(eq(inventoryTable.id, Number(req.params.id)));
   res.status(204).send();
 });
 
-router.post("/inventory/:id/adjust", requireAuth, async (req, res) => {
+router.post("/inventory/:id/adjust", requireAuth, async (req: AuthRequest, res) => {
+  if (req.user?.role === "dentist") { res.status(403).json({ error: "Forbidden" }); return; }
   const { type, quantity } = req.body;
-  if (!type || !quantity) {
-    res.status(400).json({ error: "type and quantity are required" });
-    return;
-  }
+  if (!type || !quantity) { res.status(400).json({ error: "type and quantity are required" }); return; }
   const [item] = await db.select().from(inventoryTable).where(eq(inventoryTable.id, Number(req.params.id)));
   if (!item) { res.status(404).json({ error: "Not found" }); return; }
   const current = Number(item.quantity);

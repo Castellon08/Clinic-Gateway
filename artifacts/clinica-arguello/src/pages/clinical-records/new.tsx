@@ -7,6 +7,7 @@ import {
   useCreateClinicalRecord,
   useListPatients,
   useListUsers,
+  useGetMe,
   getListClinicalRecordsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,17 +42,20 @@ export default function NewClinicalRecordPage() {
   const createRecord = useCreateClinicalRecord();
   const [patientSearch, setPatientSearch] = useState("");
   const debouncedSearch = useDebounce(patientSearch, 300);
+  const { data: me } = useGetMe();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      patientId: "", dentistId: "",
+      patientId: "",
+      dentistId: me?.role === "dentist" ? String(me.id) : "",
       visitDate: new Date().toISOString().split("T")[0],
       chiefComplaint: "", diagnosis: "", treatment: "", toothNumbers: "", observations: "", nextVisitNotes: "",
     },
   });
 
-  const { data: patients } = useListPatients(debouncedSearch ? { search: debouncedSearch } : undefined);
+  const { data: patientResponse } = useListPatients(debouncedSearch ? { search: debouncedSearch } : undefined);
+  const patients = patientResponse?.data ?? [];
   const { data: users } = useListUsers();
   const dentists = users?.filter(u => u.role === "dentist" || u.role === "admin");
 
@@ -89,22 +93,24 @@ export default function NewClinicalRecordPage() {
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      {patients?.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName} — {p.cedula}</SelectItem>)}
+                      {patients.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName} — {p.cedula}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 <FormMessage /></FormItem>
               )} />
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="dentistId" render={({ field }) => (
-                  <FormItem><FormLabel>Dentista *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {dentists?.map(d => <SelectItem key={d.id} value={String(d.id)}>Dr. {d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  <FormMessage /></FormItem>
-                )} />
+                {me?.role !== "dentist" ? (
+                  <FormField control={form.control} name="dentistId" render={({ field }) => (
+                    <FormItem><FormLabel>Dentista *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {dentists?.map(d => <SelectItem key={d.id} value={String(d.id)}>Dr. {d.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    <FormMessage /></FormItem>
+                  )} />
+                ) : null}
                 <FormField control={form.control} name="visitDate" render={({ field }) => (
                   <FormItem><FormLabel>Fecha de visita *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -119,7 +125,7 @@ export default function NewClinicalRecordPage() {
                 <FormItem><FormLabel>Tratamiento realizado *</FormLabel><FormControl><Textarea rows={2} placeholder="Procedimientos y tratamientos..." {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="toothNumbers" render={({ field }) => (
-                <FormItem><FormLabel>Piezas dentales</FormLabel><FormControl><Input placeholder="Ej: 11, 21, 36, 46" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Piezas dentales (FDI)</FormLabel><FormControl><Input placeholder="Ej: 11, 21, 36, 46" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="observations" render={({ field }) => (
                 <FormItem><FormLabel>Observaciones</FormLabel><FormControl><Textarea rows={2} placeholder="Observaciones adicionales..." {...field} /></FormControl><FormMessage /></FormItem>

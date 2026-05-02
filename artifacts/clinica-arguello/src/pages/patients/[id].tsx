@@ -4,13 +4,18 @@ import {
   useListAppointments,
   useListClinicalRecords,
   useListInvoices,
+  useGetMe,
   getGetPatientQueryKey,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Phone, Mail, MapPin, Heart, AlertCircle, Calendar, FileText, Receipt, User } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, Heart, AlertCircle, Calendar, FileText, Receipt, User, Grid3X3 } from "lucide-react";
+import { Odontogram, OdontogramData } from "@/components/Odontogram";
+import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -48,6 +53,10 @@ function formatCurrency(amount: string | number) {
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const patientId = Number(id);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
+  const [savingOdonto, setSavingOdonto] = useState(false);
 
   const { data: patient, isLoading: patientLoading } = useGetPatient(patientId, {
     query: { enabled: !!patientId, queryKey: getGetPatientQueryKey(patientId) }
@@ -55,6 +64,25 @@ export default function PatientDetailPage() {
   const { data: appointments } = useListAppointments({ patientId });
   const { data: records } = useListClinicalRecords({ patientId });
   const { data: invoices } = useListInvoices({ patientId });
+
+  const handleOdontogramChange = useCallback(async (data: OdontogramData) => {
+    setSavingOdonto(true);
+    try {
+      const token = localStorage.getItem("clinica_token");
+      const res = await fetch(`/api/patients/${patientId}/odontogram`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ odontogramData: data }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: getGetPatientQueryKey(patientId) });
+      toast({ title: "Odontograma actualizado" });
+    } catch {
+      toast({ title: "Error al guardar odontograma", variant: "destructive" });
+    } finally {
+      setSavingOdonto(false);
+    }
+  }, [patientId, queryClient, toast]);
 
   if (patientLoading) {
     return (
@@ -76,6 +104,7 @@ export default function PatientDetailPage() {
   }
 
   const age = calcAge(patient.birthDate);
+  const odontogramData = ((patient as unknown as { odontogramData?: OdontogramData }).odontogramData) ?? {};
 
   return (
     <div className="space-y-6">
@@ -88,31 +117,37 @@ export default function PatientDetailPage() {
             {patient.gender ? ` · ${GENDER_LABELS[patient.gender] ?? patient.gender}` : ""}
           </p>
         </div>
-        <div className="ml-auto">
-          <Link href={`/appointments/new`}>
-            <Button variant="outline" size="sm">
-              <Calendar className="h-4 w-4 mr-2" />Nueva cita
-            </Button>
-          </Link>
+        <div className="ml-auto flex items-center gap-2">
+          {savingOdonto && <span className="text-xs text-muted-foreground">Guardando...</span>}
+          {me?.role !== "dentist" && (
+            <Link href={`/appointments/new`}>
+              <Button variant="outline" size="sm">
+                <Calendar className="h-4 w-4 mr-2" />Nueva cita
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
       <Tabs defaultValue="profile">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
-          <TabsTrigger value="profile" className="flex items-center gap-1">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+          <TabsTrigger value="profile" className="flex items-center gap-1 text-xs">
             <User className="h-3.5 w-3.5" />Perfil
           </TabsTrigger>
-          <TabsTrigger value="appointments" className="flex items-center gap-1">
+          <TabsTrigger value="odontogram" className="flex items-center gap-1 text-xs">
+            <Grid3X3 className="h-3.5 w-3.5" />Odontograma
+          </TabsTrigger>
+          <TabsTrigger value="appointments" className="flex items-center gap-1 text-xs">
             <Calendar className="h-3.5 w-3.5" />Citas
-            {appointments?.length ? <span className="ml-1 text-xs bg-muted rounded-full px-1.5">{appointments.length}</span> : null}
+            {appointments?.length ? <span className="ml-0.5 text-xs bg-muted rounded-full px-1.5">{appointments.length}</span> : null}
           </TabsTrigger>
-          <TabsTrigger value="records" className="flex items-center gap-1">
+          <TabsTrigger value="records" className="flex items-center gap-1 text-xs">
             <FileText className="h-3.5 w-3.5" />Expediente
-            {records?.length ? <span className="ml-1 text-xs bg-muted rounded-full px-1.5">{records.length}</span> : null}
+            {records?.length ? <span className="ml-0.5 text-xs bg-muted rounded-full px-1.5">{records.length}</span> : null}
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-1">
+          <TabsTrigger value="invoices" className="flex items-center gap-1 text-xs">
             <Receipt className="h-3.5 w-3.5" />Facturas
-            {invoices?.length ? <span className="ml-1 text-xs bg-muted rounded-full px-1.5">{invoices.length}</span> : null}
+            {invoices?.length ? <span className="ml-0.5 text-xs bg-muted rounded-full px-1.5">{invoices.length}</span> : null}
           </TabsTrigger>
         </TabsList>
 
@@ -139,6 +174,9 @@ export default function PatientDetailPage() {
                     <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                     <span>{patient.address}</span>
                   </div>
+                )}
+                {!patient.phone && !patient.email && !patient.address && (
+                  <p className="text-sm text-muted-foreground">Sin información de contacto</p>
                 )}
               </CardContent>
             </Card>
@@ -174,6 +212,23 @@ export default function PatientDetailPage() {
           </div>
         </TabsContent>
 
+        {/* ODONTOGRAM TAB */}
+        <TabsContent value="odontogram" className="mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Odontograma — Sistema FDI</CardTitle>
+              <p className="text-sm text-muted-foreground">Haga clic en una pieza dental para registrar su estado</p>
+            </CardHeader>
+            <CardContent>
+              <Odontogram
+                data={odontogramData}
+                onChange={handleOdontogramChange}
+                readonly={false}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* APPOINTMENTS TAB */}
         <TabsContent value="appointments" className="mt-4">
           <div className="flex justify-between items-center mb-3">
@@ -186,17 +241,20 @@ export default function PatientDetailPage() {
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Sin citas registradas</CardContent></Card>
           ) : (
             <div className="space-y-2">
-              {appointments.map((appt) => (
+              {(appointments as unknown as { id: number; appointmentDate: string; appointmentTime: string; reason?: string; status: string; dentist?: { name: string } }[]).map((appt) => (
                 <div key={appt.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm font-semibold">{formatDate(appt.appointmentDate)}</span>
                       <span className="text-sm text-muted-foreground">a las {appt.appointmentTime}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{appt.reason}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground">{appt.reason}</p>
+                      {appt.dentist && <span className="text-xs text-muted-foreground">· Dr. {appt.dentist.name}</span>}
+                    </div>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full border font-medium ${STATUS_COLORS[appt.status]}`}>
-                    {STATUS_LABELS[appt.status]}
+                  <span className={`text-xs px-2 py-1 rounded-full border font-medium ${STATUS_COLORS[appt.status] ?? ""}`}>
+                    {STATUS_LABELS[appt.status] ?? appt.status}
                   </span>
                 </div>
               ))}
@@ -229,6 +287,7 @@ export default function PatientDetailPage() {
                         <p className="text-sm font-medium">{record.diagnosis}</p>
                         <p className="text-sm text-muted-foreground">{record.treatment}</p>
                         {record.toothNumbers && <p className="text-xs text-muted-foreground mt-1">Piezas: {record.toothNumbers}</p>}
+                        {record.observations && <p className="text-xs text-muted-foreground mt-1">Obs: {record.observations}</p>}
                         {record.nextVisitNotes && <p className="text-xs text-muted-foreground mt-1 italic">Próxima visita: {record.nextVisitNotes}</p>}
                       </div>
                     </div>
@@ -259,8 +318,8 @@ export default function PatientDetailPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-bold">{formatCurrency(invoice.total)}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${INVOICE_STATUS_COLORS[invoice.status]}`}>
-                      {INVOICE_STATUS_LABELS[invoice.status]}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${INVOICE_STATUS_COLORS[invoice.status] ?? ""}`}>
+                      {INVOICE_STATUS_LABELS[invoice.status] ?? invoice.status}
                     </span>
                   </div>
                 </div>

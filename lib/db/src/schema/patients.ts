@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, date, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -17,6 +17,7 @@ export const patientsTable = pgTable("patients", {
   bloodType: text("blood_type"),
   allergies: text("allergies"),
   medicalNotes: text("medical_notes"),
+  odontogramData: jsonb("odontogram_data").default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -15,20 +15,16 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Pacientes", href: "/patients", icon: Users },
-  { name: "Citas", href: "/appointments", icon: Calendar },
-  { name: "Expedientes", href: "/clinical-records", icon: FileText },
-  { name: "Facturación", href: "/invoices", icon: Receipt },
-  { name: "Inventario", href: "/inventory", icon: Package },
-];
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrador",
+  receptionist: "Recepcionista",
+  dentist: "Dentista",
+};
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -44,6 +40,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       },
     });
   };
+
+  const isDentist = user?.role === "dentist";
+
+  const navigation = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, show: true },
+    { name: "Pacientes", href: "/patients", icon: Users, show: true },
+    { name: "Citas", href: "/appointments", icon: Calendar, show: true },
+    { name: "Expedientes", href: "/clinical-records", icon: FileText, show: true },
+    { name: "Facturación", href: "/invoices", icon: Receipt, show: true },
+    { name: "Inventario", href: "/inventory", icon: Package, show: !isDentist },
+  ].filter(item => item.show);
 
   const NavLinks = () => (
     <nav className="space-y-1 px-2">
@@ -97,7 +104,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile sidebar */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent side="left" className="p-0 w-64 bg-sidebar">
           <div className="flex flex-col h-full">
@@ -111,7 +117,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
 
-      {/* Desktop sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex flex-col flex-grow border-r border-sidebar-border bg-sidebar pt-5 pb-4 overflow-y-auto">
           <div className="flex items-center flex-shrink-0 px-4 mb-5">
@@ -131,21 +136,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             className="px-4 border-r border-border text-muted-foreground focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary md:hidden"
             onClick={() => setMobileMenuOpen(true)}
           >
-            <span className="sr-only">Open sidebar</span>
+            <span className="sr-only">Abrir menú</span>
             <Menu className="h-6 w-6" aria-hidden="true" />
           </Button>
-          <div className="flex-1 px-4 flex justify-between">
-            <div className="flex-1 flex items-center">
-              {/* Top bar search could go here */}
-            </div>
-            <div className="ml-4 flex items-center md:ml-6 gap-4">
+          <div className="flex-1 px-4 flex justify-end">
+            <div className="flex items-center md:ml-6 gap-4">
               {isLoading ? (
                 <Skeleton className="h-8 w-32" />
               ) : user ? (
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-right hidden sm:block">
                     <p className="font-medium text-foreground">{user.name}</p>
-                    <p className="text-muted-foreground capitalize">{user.role}</p>
+                    <p className="text-xs text-muted-foreground">{ROLE_LABELS[user.role] ?? user.role}</p>
                   </div>
                   <Avatar>
                     <AvatarFallback className="bg-primary/10 text-primary">

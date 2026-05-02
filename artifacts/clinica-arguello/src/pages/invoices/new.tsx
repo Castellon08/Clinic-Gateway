@@ -34,7 +34,8 @@ export default function NewInvoicePage() {
     { description: "", quantity: 1, unitPrice: 0 },
   ]);
 
-  const { data: patients } = useListPatients(debouncedSearch ? { search: debouncedSearch } : undefined);
+  const { data: patientResponse } = useListPatients(debouncedSearch ? { search: debouncedSearch } : undefined);
+  const patients = patientResponse?.data ?? [];
 
   function addItem() {
     setItems(prev => [...prev, { description: "", quantity: 1, unitPrice: 0 }]);
@@ -89,7 +90,7 @@ export default function NewInvoicePage() {
               <Select value={patientId} onValueChange={setPatientId}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger>
                 <SelectContent>
-                  {patients?.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</SelectItem>)}
+                  {patients.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -156,7 +157,7 @@ export default function NewInvoicePage() {
             ))}
             <div className="border-t border-border pt-3 flex justify-end">
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">Subtotal</p>
+                <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-xl font-bold text-foreground">{formatCurrency(subtotal)}</p>
               </div>
             </div>

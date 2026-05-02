@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { db, invoicesTable, patientsTable } from "@workspace/db";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { db, invoicesTable, patientsTable, appointmentsTable } from "@workspace/db";
+import { eq, and, gte, lte, sql, inArray } from "drizzle-orm";
+import { requireAuth, AuthRequest } from "../lib/auth";
 
 const router = Router();
 
@@ -15,18 +15,33 @@ async function generateInvoiceNumber(): Promise<string> {
   return `INV-${new Date().getFullYear()}-${num}`;
 }
 
-router.get("/invoices", requireAuth, async (req, res) => {
+router.get("/invoices", requireAuth, async (req: AuthRequest, res) => {
   const { patientId, status, dateFrom, dateTo } = req.query as Record<string, string>;
-  const conditions = [];
-  if (patientId) conditions.push(eq(invoicesTable.patientId, Number(patientId)));
+  const conditions: ReturnType<typeof eq | typeof gte | typeof lte>[] = [];
+
+  // Dentist role: only see invoices for their own patients
+  if (req.user?.role === "dentist") {
+    const dentistId = req.user.userId;
+    const patientIds = (await db.selectDistinct({ patientId: appointmentsTable.patientId })
+      .from(appointmentsTable)
+      .where(eq(appointmentsTable.dentistId, dentistId))).map(r => r.patientId);
+    if (patientIds.length === 0) {
+      res.json([]);
+      return;
+    }
+    conditions.push(inArray(invoicesTable.patientId, patientIds));
+  } else if (patientId) {
+    conditions.push(eq(invoicesTable.patientId, Number(patientId)));
+  }
+
+  if (!req.user || req.user.role !== "dentist") {
+    if (patientId) conditions.push(eq(invoicesTable.patientId, Number(patientId)));
+  }
   if (status) conditions.push(eq(invoicesTable.status, status as "pending" | "paid" | "cancelled"));
   if (dateFrom) conditions.push(gte(invoicesTable.createdAt, new Date(dateFrom)));
   if (dateTo) conditions.push(lte(invoicesTable.createdAt, new Date(dateTo)));
 
-  const rows = await db.select({
-    invoice: invoicesTable,
-    patient: buildPatientSelect(),
-  })
+  const rows = await db.select({ invoice: invoicesTable, patient: buildPatientSelect() })
     .from(invoicesTable)
     .leftJoin(patientsTable, eq(invoicesTable.patientId, patientsTable.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -37,20 +52,15 @@ router.get("/invoices", requireAuth, async (req, res) => {
 
 router.post("/invoices", requireAuth, async (req, res) => {
   const { patientId, items, appointmentId, notes, paymentMethod, status = "pending" } = req.body;
-  if (!patientId || !items?.length) {
-    res.status(400).json({ error: "patientId and items are required" });
-    return;
-  }
+  if (!patientId || !items?.length) { res.status(400).json({ error: "patientId and items are required" }); return; }
   const invoiceItems = items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
-    ...item,
-    total: item.quantity * item.unitPrice,
+    ...item, total: item.quantity * item.unitPrice,
   }));
   const subtotal = invoiceItems.reduce((sum: number, i: { total: number }) => sum + i.total, 0);
-  const total = subtotal;
   const invoiceNumber = await generateInvoiceNumber();
   const [invoice] = await db.insert(invoicesTable).values({
     patientId, appointmentId, invoiceNumber, items: invoiceItems,
-    subtotal: String(subtotal), total: String(total), status, paymentMethod, notes,
+    subtotal: String(subtotal), total: String(subtotal), status, paymentMethod, notes,
     paidAt: status === "paid" ? new Date() : undefined,
   }).returning();
   const [patient] = await db.select(buildPatientSelect()).from(patientsTable).where(eq(patientsTable.id, invoice.patientId));
@@ -74,15 +84,14 @@ router.put("/invoices/:id", requireAuth, async (req, res) => {
   if (notes !== undefined) updates.notes = notes;
   if (items !== undefined) {
     const invoiceItems = items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
-      ...item,
-      total: item.quantity * item.unitPrice,
+      ...item, total: item.quantity * item.unitPrice,
     }));
     const subtotal = invoiceItems.reduce((sum: number, i: { total: number }) => sum + i.total, 0);
     updates.items = invoiceItems;
     updates.subtotal = String(subtotal);
     updates.total = String(subtotal);
   }
-  if (status === "paid" && !req.body.paidAt) updates.paidAt = new Date();
+  if (status === "paid") updates.paidAt = new Date();
   const [invoice] = await db.update(invoicesTable).set(updates).where(eq(invoicesTable.id, Number(req.params.id))).returning();
   if (!invoice) { res.status(404).json({ error: "Not found" }); return; }
   const [patient] = await db.select(buildPatientSelect()).from(patientsTable).where(eq(patientsTable.id, invoice.patientId));

@@ -14,7 +14,9 @@ function formatDate(dateStr: string) {
 export default function ClinicalRecordsPage() {
   const [patientFilter, setPatientFilter] = useState<string>("all");
 
-  const { data: patients } = useListPatients();
+  const { data: patientResponse } = useListPatients();
+  const patients = patientResponse?.data ?? [];
+
   const { data: records, isLoading } = useListClinicalRecords(
     patientFilter !== "all" ? { patientId: Number(patientFilter) } : undefined
   );
@@ -38,7 +40,7 @@ export default function ClinicalRecordsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los pacientes</SelectItem>
-            {patients?.map(p => (
+            {patients.map(p => (
               <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</SelectItem>
             ))}
           </SelectContent>
@@ -47,7 +49,7 @@ export default function ClinicalRecordsPage() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[1,2,3,4].map(i=><Skeleton key={i} className="h-24"/>)}
+          {[1,2,3,4].map(i=><Skeleton key={i} className="h-24" />)}
         </div>
       ) : !records?.length ? (
         <Card>

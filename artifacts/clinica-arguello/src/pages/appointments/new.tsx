@@ -8,6 +8,7 @@ import {
   useListPatients,
   useListUsers,
   useCheckAvailability,
+  useGetMe,
   getListAppointmentsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,23 +41,33 @@ export default function NewAppointmentPage() {
   const createAppt = useCreateAppointment();
   const [patientSearch, setPatientSearch] = useState("");
   const debouncedPatientSearch = useDebounce(patientSearch, 300);
+  const { data: me } = useGetMe();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(apptSchema),
-    defaultValues: { patientId: "", dentistId: "", appointmentDate: new Date().toISOString().split("T")[0], appointmentTime: "", durationMinutes: 30, reason: "", notes: "" },
+    defaultValues: {
+      patientId: "",
+      dentistId: me?.role === "dentist" ? String(me.id) : "",
+      appointmentDate: new Date().toISOString().split("T")[0],
+      appointmentTime: "",
+      durationMinutes: 30,
+      reason: "",
+      notes: "",
+    },
   });
 
   const watchDentistId = form.watch("dentistId");
   const watchDate = form.watch("appointmentDate");
 
-  const { data: patients } = useListPatients(debouncedPatientSearch ? { search: debouncedPatientSearch } : undefined);
+  const { data: patientResponse } = useListPatients(debouncedPatientSearch ? { search: debouncedPatientSearch } : undefined);
+  const patients = patientResponse?.data ?? [];
   const { data: users } = useListUsers();
   const dentists = users?.filter(u => u.role === "dentist" || u.role === "admin");
 
   const { data: availability } = useCheckAvailability(
     watchDentistId && watchDate
-      ? { dentistId: watchDentistId, date: watchDate }
-      : undefined,
+      ? { dentistId: Number(watchDentistId), date: watchDate }
+      : { dentistId: 0, date: "" },
     { query: { enabled: !!(watchDentistId && watchDate) } }
   );
 
@@ -77,8 +88,8 @@ export default function NewAppointmentPage() {
         toast({ title: "Cita agendada exitosamente" });
         setLocation("/appointments");
       },
-      onError: (err: any) => {
-        const msg = err?.data?.message ?? "No se pudo agendar la cita";
+      onError: (err: unknown) => {
+        const msg = (err as { data?: { message?: string } })?.data?.message ?? "No se pudo agendar la cita";
         toast({ title: "Error", description: msg, variant: "destructive" });
       },
     });
@@ -99,7 +110,6 @@ export default function NewAppointmentPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Patient search */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Buscar Paciente</label>
                 <Input
@@ -113,7 +123,7 @@ export default function NewAppointmentPage() {
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar paciente" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      {patients?.map(p => (
+                      {patients.map(p => (
                         <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName} — {p.cedula}</SelectItem>
                       ))}
                     </SelectContent>
@@ -121,18 +131,20 @@ export default function NewAppointmentPage() {
                 <FormMessage /></FormItem>
               )} />
 
-              <FormField control={form.control} name="dentistId" render={({ field }) => (
-                <FormItem><FormLabel>Dentista *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar dentista" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {dentists?.map(d => (
-                        <SelectItem key={d.id} value={String(d.id)}>Dr. {d.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                <FormMessage /></FormItem>
-              )} />
+              {me?.role !== "dentist" && (
+                <FormField control={form.control} name="dentistId" render={({ field }) => (
+                  <FormItem><FormLabel>Dentista *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar dentista" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {dentists?.map(d => (
+                          <SelectItem key={d.id} value={String(d.id)}>Dr. {d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  <FormMessage /></FormItem>
+                )} />
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="appointmentDate" render={({ field }) => (
@@ -150,14 +162,13 @@ export default function NewAppointmentPage() {
                 )} />
               </div>
 
-              {/* Time slots */}
               <FormField control={form.control} name="appointmentTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Hora *</FormLabel>
                   {availability ? (
                     <div>
                       <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mt-1">
-                        {availability.availableSlots?.map((slot: string) => (
+                        {(availability as { availableSlots?: string[] }).availableSlots?.map((slot: string) => (
                           <button
                             type="button"
                             key={slot}
@@ -172,7 +183,7 @@ export default function NewAppointmentPage() {
                           </button>
                         ))}
                       </div>
-                      {availability.availableSlots?.length === 0 && (
+                      {(availability as { availableSlots?: string[] }).availableSlots?.length === 0 && (
                         <p className="text-sm text-amber-600 mt-2">No hay horarios disponibles para este dentista en esta fecha.</p>
                       )}
                     </div>
