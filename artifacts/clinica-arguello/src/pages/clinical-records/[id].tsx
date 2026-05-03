@@ -219,7 +219,7 @@ function buildPrintHtml(record: ClinicalRecord): string {
 
   <div style="text-align:center;font-size:11px;color:#6b7280;margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;">
     <p>Clínica Odontológica Argüello — Historia Clínica generada el ${new Date().toLocaleDateString("es-NI")}</p>
-    ${record.dentist ? `<p>Dentista: Dr. ${record.dentist.name}</p>` : ""}
+    ${record.dentist ? `<p>Dentista: ${record.dentist.name}</p>` : ""}
   </div>
 </body>
 </html>`;

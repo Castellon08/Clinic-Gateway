@@ -214,7 +214,7 @@ export default function NewClinicalRecordPage() {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {dentists?.map(d => <SelectItem key={d.id} value={String(d.id)}>Dr. {d.name}</SelectItem>)}
+                          {dentists?.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     <FormMessage /></FormItem>
