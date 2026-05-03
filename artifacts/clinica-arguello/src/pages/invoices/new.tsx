@@ -163,8 +163,8 @@ export default function NewInvoicePage() {
                     <Input
                       type="text"
                       inputMode="decimal"
-                      value={item.unitPriceUsd ?? ""}
-                      onChange={(e) => updateItem(idx, "unitPriceUsd", Number(e.target.value))}
+                      value={exchangeRateValue > 0 ? (item.unitPrice / exchangeRateValue).toFixed(2) : ""}
+                      readOnly
                     />
                   </div>
                 )}
