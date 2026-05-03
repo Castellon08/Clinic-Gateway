@@ -107,7 +107,12 @@ export default function NewInvoicePage() {
             {me?.role === "admin" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Porcentaje para la clínica (%)</label>
-                <Input type="number" min={0} step={0.01} value={markupPercent} onChange={(e) => setMarkupPercent(Number(e.target.value))} />
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={markupPercent}
+                  onChange={(e) => setMarkupPercent(Number(e.target.value))}
+                />
               </div>
             )}
           </CardContent>
