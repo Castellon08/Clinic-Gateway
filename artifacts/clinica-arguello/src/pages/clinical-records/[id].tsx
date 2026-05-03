@@ -55,7 +55,6 @@ interface ClinicalRecord {
   dentistId: number;
   visitDate: string;
   visitTime?: string;
-  doctorName?: string;
   doctorMinsaCode?: string;
   service?: string;
   age?: string;
@@ -155,13 +154,13 @@ function buildPrintHtml(record: ClinicalRecord): string {
     <h2 style="font-size:16px;font-weight:600;margin-top:4px;">Historia Clínica</h2>
     <p style="font-size:13px;color:#4b5563;margin-top:6px;">Paciente: ${patientName}${record.patient?.cedula ? " | Cédula: " + record.patient.cedula : ""}</p>
     <p style="font-size:13px;color:#4b5563;">Fecha: ${formatDate(record.visitDate)}</p>
-    ${record.doctorName || record.dentist?.name ? `<p style="font-size:13px;color:#4b5563;">Doctor: ${record.doctorName ?? record.dentist?.name ?? "—"}${record.doctorMinsaCode ? " | Código MINSA: " + record.doctorMinsaCode : ""}</p>` : ""}
+    ${record.dentist?.name ? `<p style="font-size:13px;color:#4b5563;">Dentista: ${record.dentist.name}${record.doctorMinsaCode ? " | Código MINSA: " + record.doctorMinsaCode : ""}</p>` : ""}
   </div>
 
   ${section("Datos de Identificación",
     row("Fecha", formatDate(record.visitDate)) +
     row("Hora", record.visitTime) +
-    row("Doctor", record.doctorName ?? record.dentist?.name) +
+    row("Dentista", record.dentist?.name) +
     row("Código MINSA", record.doctorMinsaCode) +
     row("Servicio", record.service) +
     row("Paciente", patientName) +
@@ -356,7 +355,7 @@ export default function ClinicalRecordDetailPage() {
       <Section title="Datos de Identificación">
         <Row label="Fecha" value={formatDate(record.visitDate)} />
         <Row label="Hora" value={record.visitTime} />
-        <Row label="Doctor" value={record.doctorName ?? record.dentist?.name} />
+        <Row label="Dentista" value={record.dentist?.name} />
         <Row label="Código MINSA" value={record.doctorMinsaCode} />
         <Row label="Servicio" value={record.service} />
         <Row label="Paciente" value={`${record.patient?.firstName ?? ""} ${record.patient?.lastName ?? ""}`} />

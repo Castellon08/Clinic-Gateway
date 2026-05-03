@@ -26,7 +26,6 @@ const schema = z.object({
   dentistId: z.string().min(1, "Dentista requerido"),
   visitDate: z.string().min(1, "Fecha requerida"),
   visitTime: z.string().optional(),
-  doctorName: z.string().optional(),
   doctorMinsaCode: z.string().regex(/^[a-zA-Z0-9]*$/, "Solo letras y números").optional(),
   service: z.string().optional(),
   age: z.string().optional(),
@@ -92,7 +91,6 @@ export default function NewClinicalRecordPage() {
       dentistId: me?.role === "dentist" ? String(me.id) : "",
       visitDate: new Date().toISOString().split("T")[0],
       visitTime: "",
-      doctorName: "",
       doctorMinsaCode: "",
       service: "",
       age: "",
@@ -226,7 +224,6 @@ export default function NewClinicalRecordPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField control={form.control} name="visitDate" render={({ field }) => (<FormItem><FormLabel>Fecha</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="visitTime" render={({ field }) => (<FormItem><FormLabel>Hora</FormLabel><FormControl><Input placeholder="08:00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="doctorName" render={({ field }) => (<FormItem><FormLabel>Nombre del doctor que examina</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 {isAdmin && <FormField control={form.control} name="doctorMinsaCode" render={({ field }) => (<FormItem><FormLabel>Código MINSA del doctor</FormLabel><FormControl><Input placeholder="Alfanumérico" {...field} /></FormControl><FormMessage /></FormItem>)} />}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
