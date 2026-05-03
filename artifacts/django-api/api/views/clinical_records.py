@@ -5,6 +5,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
+def _record_qs():
+    return ClinicalRecord.objects.select_related("patient", "dentist")
+
 ALLOWED_MIME_TYPES = {
     "image/jpeg", "image/png", "image/gif", "image/webp",
     "application/pdf",
@@ -83,7 +86,7 @@ def _record_dict(r):
 
 class ClinicalRecordListView(APIView):
     def get(self, request):
-        qs = ClinicalRecord.objects.select_related("patient", "dentist").all()
+        qs = _record_qs().all()
         user = request.user
         if user.role == "dentist":
             qs = qs.filter(dentist_id=user.pk)
@@ -154,14 +157,14 @@ class ClinicalRecordListView(APIView):
             observations=data.get("observations"),
             next_visit_notes=data.get("nextVisitNotes"),
         )
-        record = ClinicalRecord.objects.select_related("patient", "dentist").get(pk=record.pk)
+        record = _record_qs().get(pk=record.pk)
         return Response(_record_dict(record), status=status.HTTP_201_CREATED)
 
 
 class ClinicalRecordDetailView(APIView):
     def _get(self, pk):
         try:
-            return ClinicalRecord.objects.select_related("patient", "dentist").get(pk=pk)
+            return _record_qs().get(pk=pk)
         except ClinicalRecord.DoesNotExist:
             return None
 
@@ -185,7 +188,7 @@ class ClinicalRecordDetailView(APIView):
             if field in data:
                 setattr(r, field, data[field])
         r.save()
-        r = ClinicalRecord.objects.select_related("patient", "dentist").get(pk=pk)
+        r = _record_qs().get(pk=pk)
         return Response(_record_dict(r))
 
     def delete(self, request, pk):

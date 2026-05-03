@@ -55,8 +55,6 @@ const schema = z.object({
   imc: z.string().optional(),
   aspectoGeneral: z.string().optional(),
   pielMucosas: z.string().optional(),
-  examenRadiografico: z.string().optional(),
-  fotos: z.string().optional(),
   diagnosticos: z.string().optional(),
   planTratamiento: z.string().optional(),
   presupuesto: z.string().optional(),
@@ -71,12 +69,18 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+function getToken() {
+  return localStorage.getItem("clinica_token") ?? "";
+}
+
 export default function NewClinicalRecordPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createRecord = useCreateClinicalRecord();
   const [patientSearch, setPatientSearch] = useState("");
+  const [radiograficoFile, setRadiograficoFile] = useState<File | null>(null);
+  const [fotosFile, setFotosFile] = useState<File | null>(null);
   const debouncedSearch = useDebounce(patientSearch, 300);
   const { data: me } = useGetMe();
 
@@ -116,8 +120,6 @@ export default function NewClinicalRecordPage() {
       imc: "",
       aspectoGeneral: "",
       pielMucosas: "",
-      examenRadiografico: "",
-      fotos: "",
       diagnosticos: "",
       planTratamiento: "",
       presupuesto: "",
@@ -136,6 +138,17 @@ export default function NewClinicalRecordPage() {
   const { data: users } = useListUsers();
   const dentists = users?.filter(u => u.role === "dentist" || u.role === "admin");
 
+  const uploadAttachment = async (recordId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`/api/clinical-records/${recordId}/attachments`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: formData,
+    });
+    if (!res.ok) throw new Error("No se pudo subir el archivo");
+  };
+
   const onSubmit = (values: FormValues) => {
     const infections = values.enfermedadesInfectocontagiosas ? values.enfermedadesInfectocontagiosas.split(",").map(s => s.trim()).filter(Boolean) : [];
     const hereditarias = values.enfermedadesHereditarias ? values.enfermedadesHereditarias.split(",").map(s => s.trim()).filter(Boolean) : [];
@@ -148,11 +161,18 @@ export default function NewClinicalRecordPage() {
         enfermedadesHereditarias: hereditarias,
       } as never,
     }, {
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: getListClinicalRecordsQueryKey() });
-        toast({ title: "Historia clínica creada exitosamente" });
+      onSuccess: async (data) => {
         const id = (data as unknown as { id: number }).id;
-        setLocation(id ? `/clinical-records/${id}` : "/clinical-records");
+        try {
+          if (id && radiograficoFile) await uploadAttachment(id, radiograficoFile);
+          if (id && fotosFile) await uploadAttachment(id, fotosFile);
+          queryClient.invalidateQueries({ queryKey: getListClinicalRecordsQueryKey() });
+          toast({ title: "Historia clínica creada exitosamente" });
+          setLocation(id ? `/clinical-records/${id}` : "/clinical-records");
+        } catch {
+          toast({ title: "Historia creada, pero no se pudieron subir todos los archivos", variant: "destructive" });
+          setLocation(id ? `/clinical-records/${id}` : "/clinical-records");
+        }
       },
       onError: () => toast({ title: "Error", description: "No se pudo crear la historia clínica.", variant: "destructive" }),
     });
@@ -239,8 +259,18 @@ export default function NewClinicalRecordPage() {
               </div>
               <FormField control={form.control} name="aspectoGeneral" render={({ field }) => (<FormItem><FormLabel>Aspecto general</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
               <FormField control={form.control} name="pielMucosas" render={({ field }) => (<FormItem><FormLabel>Piel y mucosas</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
-              <FormField control={form.control} name="examenRadiografico" render={({ field }) => (<FormItem><FormLabel>Examen radiográfico</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
-              <FormField control={form.control} name="fotos" render={({ field }) => (<FormItem><FormLabel>Fotos</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
+              <FormItem>
+                <FormLabel>Examen radiográfico</FormLabel>
+                <FormControl>
+                  <Input type="file" accept="image/*,.pdf" onChange={e => setRadiograficoFile(e.target.files?.[0] ?? null)} />
+                </FormControl>
+              </FormItem>
+              <FormItem>
+                <FormLabel>Fotos</FormLabel>
+                <FormControl>
+                  <Input type="file" accept="image/*,.pdf" onChange={e => setFotosFile(e.target.files?.[0] ?? null)} />
+                </FormControl>
+              </FormItem>
               <FormField control={form.control} name="diagnosticos" render={({ field }) => (<FormItem><FormLabel>Diagnósticos o problemas odontológicos</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl></FormItem>)} />
               <FormField control={form.control} name="planTratamiento" render={({ field }) => (<FormItem><FormLabel>Plan de tratamiento odontológico</FormLabel><FormControl><Textarea rows={4} {...field} /></FormControl></FormItem>)} />
               <FormField control={form.control} name="presupuesto" render={({ field }) => (<FormItem><FormLabel>Presupuesto</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl></FormItem>)} />
