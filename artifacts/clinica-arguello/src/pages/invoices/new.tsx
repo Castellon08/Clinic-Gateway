@@ -14,6 +14,7 @@ interface LineItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  unitPriceUsd?: number;
 }
 
 function formatCurrency(amount: number) {
@@ -26,19 +27,21 @@ export default function NewInvoicePage() {
   const queryClient = useQueryClient();
   const createInvoice = useCreateInvoice();
   const { data: me } = useGetMe();
+  const isAdmin = me?.role === "admin";
 
   const [patientSearch, setPatientSearch] = useState("");
   const debouncedSearch = useDebounce(patientSearch, 300);
   const [patientId, setPatientId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [markupPercent, setMarkupPercent] = useState<number>(0);
-  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, unitPrice: 0 }]);
+  const [exchangeRate, setExchangeRate] = useState<number>(0);
+  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, unitPrice: 0, unitPriceUsd: 0 }]);
 
   const { data: patientResponse } = useListPatients(debouncedSearch ? { search: debouncedSearch } : undefined);
   const patients = patientResponse?.data ?? [];
 
   function addItem() {
-    setItems((prev) => [...prev, { description: "", quantity: 1, unitPrice: 0 }]);
+    setItems((prev) => [...prev, { description: "", quantity: 1, unitPrice: 0, unitPriceUsd: 0 }]);
   }
   function removeItem(idx: number) {
     setItems((prev) => prev.filter((_, i) => i !== idx));
@@ -48,6 +51,7 @@ export default function NewInvoicePage() {
   }
 
   const baseSubtotal = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+  const baseSubtotalUsd = exchangeRate > 0 ? baseSubtotal / exchangeRate : 0;
   const total = baseSubtotal + baseSubtotal * (markupPercent / 100);
 
   function handleSubmit(e: React.FormEvent) {
@@ -55,7 +59,7 @@ export default function NewInvoicePage() {
     if (!patientId) { toast({ title: "Seleccione un paciente", variant: "destructive" }); return; }
     if (items.some((i) => !i.description || i.unitPrice <= 0)) { toast({ title: "Complete todos los artículos", variant: "destructive" }); return; }
     createInvoice.mutate({
-      data: { patientId: Number(patientId), items, paymentMethod: paymentMethod || undefined, markupPercent: me?.role === "admin" ? markupPercent : 0 }
+      data: { patientId: Number(patientId), items, paymentMethod: paymentMethod ? (paymentMethod as never) : undefined }
     }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListInvoicesQueryKey() });
@@ -104,15 +108,26 @@ export default function NewInvoicePage() {
                 </SelectContent>
               </Select>
             </div>
-            {me?.role === "admin" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Porcentaje para la clínica (%)</label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  value={markupPercent}
-                  onChange={(e) => setMarkupPercent(Number(e.target.value))}
-                />
+            {isAdmin && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Porcentaje para la clínica (%)</label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={markupPercent}
+                    onChange={(e) => setMarkupPercent(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de cambio (USD → C$)</label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={exchangeRate}
+                    onChange={(e) => setExchangeRate(Number(e.target.value))}
+                  />
+                </div>
               </div>
             )}
           </CardContent>
@@ -134,12 +149,23 @@ export default function NewInvoicePage() {
                 </div>
                 <div className="w-20">
                   <label className="text-xs text-muted-foreground mb-1 block">Cantidad</label>
-                  <Input type="number" min={1} value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} />
+                  <Input type="text" inputMode="numeric" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} />
                 </div>
                 <div className="w-28">
                   <label className="text-xs text-muted-foreground mb-1 block">Precio unit.</label>
-                  <Input type="number" min={0} step={0.01} value={item.unitPrice} onChange={(e) => updateItem(idx, "unitPrice", Number(e.target.value))} />
+                  <Input type="text" inputMode="decimal" value={item.unitPrice} onChange={(e) => updateItem(idx, "unitPrice", Number(e.target.value))} />
                 </div>
+                {isAdmin && (
+                  <div className="w-28">
+                    <label className="text-xs text-muted-foreground mb-1 block">Precio en dólar</label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={item.unitPriceUsd ?? ""}
+                      onChange={(e) => updateItem(idx, "unitPriceUsd", Number(e.target.value))}
+                    />
+                  </div>
+                )}
                 <div className="w-24 text-right pb-2">
                   <p className="text-xs text-muted-foreground">Total</p>
                   <p className="text-sm font-semibold">{formatCurrency(item.quantity * item.unitPrice)}</p>
@@ -153,6 +179,9 @@ export default function NewInvoicePage() {
                 <p className="text-lg font-semibold text-foreground">{formatCurrency(baseSubtotal)}</p>
                 <p className="text-sm text-muted-foreground">Reducción / porcentaje: {markupPercent.toFixed(2)}%</p>
                 <p className="text-xl font-bold text-foreground">Total con reducción: {formatCurrency(total)}</p>
+                {isAdmin && exchangeRate > 0 && (
+                  <p className="text-sm text-muted-foreground">Subtotal en dólar: ${baseSubtotalUsd.toFixed(2)}</p>
+                )}
               </div>
             </div>
           </CardContent>
