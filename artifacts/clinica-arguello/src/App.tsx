@@ -16,6 +16,7 @@ import AppointmentsPage from "@/pages/appointments/index";
 import NewAppointmentPage from "@/pages/appointments/new";
 import ClinicalRecordsPage from "@/pages/clinical-records/index";
 import NewClinicalRecordPage from "@/pages/clinical-records/new";
+import ClinicalRecordDetailPage from "@/pages/clinical-records/[id]";
 import InvoicesPage from "@/pages/invoices/index";
 import NewInvoicePage from "@/pages/invoices/new";
 import InventoryPage from "@/pages/inventory/index";
@@ -71,6 +72,7 @@ function Router() {
       <Route path="/appointments/new" component={() => <ProtectedRoute component={NewAppointmentPage} />} />
       <Route path="/appointments" component={() => <ProtectedRoute component={AppointmentsPage} />} />
       <Route path="/clinical-records/new" component={() => <ProtectedRoute component={NewClinicalRecordPage} />} />
+      <Route path="/clinical-records/:id" component={() => <ProtectedRoute component={ClinicalRecordDetailPage} />} />
       <Route path="/clinical-records" component={() => <ProtectedRoute component={ClinicalRecordsPage} />} />
       <Route path="/invoices/new" component={() => <ProtectedRoute component={NewInvoicePage} />} />
       <Route path="/invoices" component={() => <ProtectedRoute component={InvoicesPage} />} />

@@ -148,10 +148,11 @@ export default function NewClinicalRecordPage() {
         enfermedadesHereditarias: hereditarias,
       } as never,
     }, {
-      onSuccess: () => {
+      onSuccess: (data) => {
         queryClient.invalidateQueries({ queryKey: getListClinicalRecordsQueryKey() });
         toast({ title: "Historia clínica creada exitosamente" });
-        setLocation("/clinical-records");
+        const id = (data as unknown as { id: number }).id;
+        setLocation(id ? `/clinical-records/${id}` : "/clinical-records");
       },
       onError: () => toast({ title: "Error", description: "No se pudo crear la historia clínica.", variant: "destructive" }),
     });

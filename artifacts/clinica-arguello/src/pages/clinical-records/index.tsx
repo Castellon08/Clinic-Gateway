@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Eye } from "lucide-react";
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T12:00:00").toLocaleDateString("es-NI", { year: "numeric", month: "short", day: "numeric" });
@@ -22,7 +22,7 @@ export default function ClinicalRecordsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Historial Clínico</h1>
-          <p className="text-sm text-muted-foreground mt-1">Historial clínico de pacientes</p>
+          <p className="text-sm text-muted-foreground mt-1">Expedientes clínicos de pacientes</p>
         </div>
         <Link href="/clinical-records/new">
           <Button><Plus className="h-4 w-4 mr-2" />Nueva Historia Clínica</Button>
@@ -67,9 +67,14 @@ export default function ClinicalRecordsPage() {
                       {record.dentist && <span className="text-xs text-muted-foreground">Dr. {record.dentist.name}</span>}
                     </div>
                     <p className="text-sm text-foreground font-medium">{record.diagnosis}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{record.treatment}</p>
-                    {record.diagnosis && <p className="text-xs text-muted-foreground mt-1">Diagnóstico clínico registrado</p>}
+                    <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{record.treatment}</p>
                   </div>
+                  <Link href={`/clinical-records/${record.id}`}>
+                    <Button variant="outline" size="sm" className="shrink-0">
+                      <Eye className="h-3.5 w-3.5 mr-1.5" />
+                      Ver / Imprimir
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
