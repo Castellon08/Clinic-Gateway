@@ -60,6 +60,7 @@ class ClinicalRecord(models.Model):
     visit_date = models.DateField()
     visit_time = models.TextField(null=True, blank=True)
     doctor_name = models.TextField(null=True, blank=True)
+    doctor_minsa_code = models.TextField(null=True, blank=True)
     service = models.TextField(null=True, blank=True)
     age = models.TextField(null=True, blank=True)
     birth_place = models.TextField(null=True, blank=True)

@@ -39,6 +39,7 @@ def _record_dict(r):
         "visitDate": str(r.visit_date),
         "visitTime": r.visit_time,
         "doctorName": r.doctor_name,
+        "doctorMinsaCode": r.doctor_minsa_code,
         "service": r.service,
         "age": r.age,
         "birthPlace": r.birth_place,
@@ -116,6 +117,7 @@ class ClinicalRecordListView(APIView):
             visit_date=visit_date,
             visit_time=data.get("visitTime"),
             doctor_name=data.get("doctorName"),
+            doctor_minsa_code=data.get("doctorMinsaCode"),
             service=data.get("service"),
             age=data.get("age"),
             birth_place=data.get("birthPlace"),
@@ -180,7 +182,7 @@ class ClinicalRecordDetailView(APIView):
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         data = request.data
         for json_key, model_field in {
-            "visitDate": "visit_date","visitTime": "visit_time","doctorName": "doctor_name","service": "service","age": "age","birthPlace": "birth_place","sex": "sex","procedence": "procedence","escolaridad": "escolaridad","profession": "profession","addressHabitual": "address_habitual","fatherName": "father_name","motherName": "mother_name","motivoConsulta": "motivo_consulta","historiaEnfermedadActual": "historia_enfermedad_actual","interrogatorioSistemas": "interrogatorio_sistemas","antecedentesFamiliares": "antecedentes_familiares","enfermedadesInfectocontagiosas": "enfermedades_infectocontagiosas","enfermedadesHereditarias": "enfermedades_hereditarias","otrasInfectocontagiosas": "otras_infectocontagiosas","otrasHereditarias": "otras_hereditarias","signosVitalesFc": "signos_vitales_fc","signosVitalesFr": "signos_vitales_fr","signosVitalesTa": "signos_vitales_ta","signosVitalesTemp": "signos_vitales_temp","peso": "peso","talla": "talla","areaSuperficieCorporal": "area_superficie_corporal","imc": "imc","aspectoGeneral": "aspecto_general","pielMucosas": "piel_mucosas","examenRadiografico": "examen_radiografico","fotos": "fotos","diagnosticos": "diagnosticos","planTratamiento": "plan_tratamiento","presupuesto": "presupuesto","tratamientoRealizado": "tratamiento_realizado","chiefComplaint": "chief_complaint","toothNumbers": "tooth_numbers","nextVisitNotes": "next_visit_notes",
+            "visitDate": "visit_date","visitTime": "visit_time","doctorName": "doctor_name","doctorMinsaCode": "doctor_minsa_code","service": "service","age": "age","birthPlace": "birth_place","sex": "sex","procedence": "procedence","escolaridad": "escolaridad","profession": "profession","addressHabitual": "address_habitual","fatherName": "father_name","motherName": "mother_name","motivoConsulta": "motivo_consulta","historiaEnfermedadActual": "historia_enfermedad_actual","interrogatorioSistemas": "interrogatorio_sistemas","antecedentesFamiliares": "antecedentes_familiares","enfermedadesInfectocontagiosas": "enfermedades_infectocontagiosas","enfermedadesHereditarias": "enfermedades_hereditarias","otrasInfectocontagiosas": "otras_infectocontagiosas","otrasHereditarias": "otras_hereditarias","signosVitalesFc": "signos_vitales_fc","signosVitalesFr": "signos_vitales_fr","signosVitalesTa": "signos_vitales_ta","signosVitalesTemp": "signos_vitales_temp","peso": "peso","talla": "talla","areaSuperficieCorporal": "area_superficie_corporal","imc": "imc","aspectoGeneral": "aspecto_general","pielMucosas": "piel_mucosas","examenRadiografico": "examen_radiografico","fotos": "fotos","diagnosticos": "diagnosticos","planTratamiento": "plan_tratamiento","presupuesto": "presupuesto","tratamientoRealizado": "tratamiento_realizado","chiefComplaint": "chief_complaint","toothNumbers": "tooth_numbers","nextVisitNotes": "next_visit_notes",
         }.items():
             if json_key in data:
                 setattr(r, model_field, data[json_key])

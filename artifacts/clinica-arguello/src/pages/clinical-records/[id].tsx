@@ -46,6 +46,7 @@ interface ClinicalRecord {
   visitDate: string;
   visitTime?: string;
   doctorName?: string;
+  doctorMinsaCode?: string;
   service?: string;
   age?: string;
   birthPlace?: string;
@@ -136,13 +137,24 @@ export default function ClinicalRecordDetailPage() {
     <>
       <style>{`
         @media print {
+          @page { margin: 12mm; }
+          html, body {
+            width: 100%;
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          body > #root > *:not(.print-root) { display: none !important; }
           .no-print { display: none !important; }
-          body { background: white !important; }
+          .print-root { display: block !important; }
+          .print-root .history-print { display: block !important; }
+          .print-root .history-print > * { break-inside: avoid; page-break-inside: avoid; }
+          .print-root .print-header { display: block !important; }
           .print-break { page-break-before: always; }
         }
       `}</style>
 
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-4xl print:max-w-none print-root">
         {/* Header */}
         <div className="flex items-center justify-between no-print">
           <div className="flex items-center gap-3">
@@ -164,7 +176,7 @@ export default function ClinicalRecordDetailPage() {
         </div>
 
         {/* Print header (visible only when printing) */}
-        <div className="hidden print:block text-center border-b pb-4 mb-4">
+        <div className="hidden print:block text-center border-b pb-4 mb-4 print-header">
           <h1 className="text-xl font-bold">Clínica Odontológica Argüello</h1>
           <h2 className="text-lg font-semibold mt-1">Historia Clínica</h2>
           <p className="text-sm text-gray-600 mt-1">
@@ -172,135 +184,88 @@ export default function ClinicalRecordDetailPage() {
             {record.patient?.cedula ? ` | Cédula: ${record.patient.cedula}` : ""}
           </p>
           <p className="text-sm text-gray-600">Fecha: {formatDate(record.visitDate)}</p>
+          {(record.doctorName || record.doctorMinsaCode || record.dentist?.name) && (
+            <p className="text-sm text-gray-600">
+              Doctor: {record.doctorName ?? record.dentist?.name ?? "—"}
+              {record.doctorMinsaCode ? ` | Código MINSA: ${record.doctorMinsaCode}` : ""}
+            </p>
+          )}
         </div>
 
-        {/* Identificación */}
-        <Section title="Datos de Identificación">
-          <Row label="Fecha" value={formatDate(record.visitDate)} />
-          <Row label="Hora" value={record.visitTime} />
-          <Row label="Doctor" value={record.doctorName ?? record.dentist?.name} />
-          <Row label="Servicio" value={record.service} />
-          <Row label="Paciente" value={`${record.patient?.firstName ?? ""} ${record.patient?.lastName ?? ""}`} />
-          <Row label="Edad" value={record.age} />
-          <Row label="Fecha / Lugar de nacimiento" value={record.birthPlace} />
-          <Row label="Sexo" value={record.sex} />
-          <Row label="Procedencia" value={record.procedence} />
-          <Row label="Escolaridad" value={record.escolaridad} />
-          <Row label="Profesión u oficio" value={record.profession} />
-          <Row label="Dirección habitual" value={record.addressHabitual} />
-          <Row label="Nombre del padre" value={record.fatherName} />
-          <Row label="Nombre de la madre" value={record.motherName} />
-        </Section>
-
-        {/* Motivo de consulta e historia */}
-        <Section title="Motivo de Consulta e Historia">
-          <Row label="Motivo de consulta" value={record.motivoConsulta} />
-          <Row label="Historia de la enfermedad actual" value={record.historiaEnfermedadActual} />
-          <Row label="Interrogatorio por aparatos y sistemas" value={record.interrogatorioSistemas} />
-          <Row label="Antecedentes familiares patológicos" value={record.antecedentesFamiliares} />
-        </Section>
-
-        {/* Antecedentes */}
-        {(record.enfermedadesInfectocontagiosas?.length || record.enfermedadesHereditarias?.length || record.otrasInfectocontagiosas || record.otrasHereditarias) ? (
-          <Section title="Antecedentes Patológicos Personales">
-            <Row label="Enfermedades infecto-contagiosas" value={record.enfermedadesInfectocontagiosas} />
-            <Row label="Otras infecto-contagiosas" value={record.otrasInfectocontagiosas} />
-            <Row label="Enfermedades hereditarias" value={record.enfermedadesHereditarias} />
-            <Row label="Otras hereditarias" value={record.otrasHereditarias} />
+        <div className="history-print">
+          <Section title="Datos de Identificación">
+            <Row label="Fecha" value={formatDate(record.visitDate)} />
+            <Row label="Hora" value={record.visitTime} />
+            <Row label="Doctor" value={record.doctorName ?? record.dentist?.name} />
+            <Row label="Código MINSA" value={record.doctorMinsaCode} />
+            <Row label="Servicio" value={record.service} />
+            <Row label="Paciente" value={`${record.patient?.firstName ?? ""} ${record.patient?.lastName ?? ""}`} />
+            <Row label="Edad" value={record.age} />
+            <Row label="Fecha / Lugar de nacimiento" value={record.birthPlace} />
+            <Row label="Sexo" value={record.sex} />
+            <Row label="Procedencia" value={record.procedence} />
+            <Row label="Escolaridad" value={record.escolaridad} />
+            <Row label="Profesión u oficio" value={record.profession} />
+            <Row label="Dirección habitual" value={record.addressHabitual} />
+            <Row label="Nombre del padre" value={record.fatherName} />
+            <Row label="Nombre de la madre" value={record.motherName} />
           </Section>
-        ) : null}
-
-        {/* Signos vitales */}
-        {(record.signosVitalesFc || record.signosVitalesFr || record.signosVitalesTa || record.signosVitalesTemp || record.peso || record.talla || record.imc) ? (
-          <Section title="Signos Vitales y Antropometría">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2">
-              {record.signosVitalesFc && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">FC</p>
-                  <p className="text-sm font-semibold">{record.signosVitalesFc}</p>
-                </div>
-              )}
-              {record.signosVitalesFr && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">FR</p>
-                  <p className="text-sm font-semibold">{record.signosVitalesFr}</p>
-                </div>
-              )}
-              {record.signosVitalesTa && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">TA</p>
-                  <p className="text-sm font-semibold">{record.signosVitalesTa}</p>
-                </div>
-              )}
-              {record.signosVitalesTemp && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">T°</p>
-                  <p className="text-sm font-semibold">{record.signosVitalesTemp}</p>
-                </div>
-              )}
-              {record.peso && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">Peso</p>
-                  <p className="text-sm font-semibold">{record.peso}</p>
-                </div>
-              )}
-              {record.talla && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">Talla</p>
-                  <p className="text-sm font-semibold">{record.talla}</p>
-                </div>
-              )}
-              {record.areaSuperficieCorporal && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">Área sup. corporal</p>
-                  <p className="text-sm font-semibold">{record.areaSuperficieCorporal}</p>
-                </div>
-              )}
-              {record.imc && (
-                <div className="bg-muted/40 rounded p-2 text-center">
-                  <p className="text-xs text-muted-foreground">IMC</p>
-                  <p className="text-sm font-semibold">{record.imc}</p>
-                </div>
-              )}
-            </div>
+          <Section title="Motivo de Consulta e Historia">
+            <Row label="Motivo de consulta" value={record.motivoConsulta} />
+            <Row label="Historia de la enfermedad actual" value={record.historiaEnfermedadActual} />
+            <Row label="Interrogatorio por aparatos y sistemas" value={record.interrogatorioSistemas} />
+            <Row label="Antecedentes familiares patológicos" value={record.antecedentesFamiliares} />
           </Section>
-        ) : null}
-
-        {/* Examen físico */}
-        {(record.aspectoGeneral || record.pielMucosas) ? (
-          <Section title="Examen Físico General">
-            <Row label="Aspecto general" value={record.aspectoGeneral} />
-            <Row label="Piel y mucosas" value={record.pielMucosas} />
+          {(record.enfermedadesInfectocontagiosas?.length || record.enfermedadesHereditarias?.length || record.otrasInfectocontagiosas || record.otrasHereditarias) ? (
+            <Section title="Antecedentes Patológicos Personales">
+              <Row label="Enfermedades infecto-contagiosas" value={record.enfermedadesInfectocontagiosas} />
+              <Row label="Otras infecto-contagiosas" value={record.otrasInfectocontagiosas} />
+              <Row label="Enfermedades hereditarias" value={record.enfermedadesHereditarias} />
+              <Row label="Otras hereditarias" value={record.otrasHereditarias} />
+            </Section>
+          ) : null}
+          {(record.signosVitalesFc || record.signosVitalesFr || record.signosVitalesTa || record.signosVitalesTemp || record.peso || record.talla || record.imc) ? (
+            <Section title="Signos Vitales y Antropometría">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2">
+                {record.signosVitalesFc && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">FC</p><p className="text-sm font-semibold">{record.signosVitalesFc}</p></div>}
+                {record.signosVitalesFr && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">FR</p><p className="text-sm font-semibold">{record.signosVitalesFr}</p></div>}
+                {record.signosVitalesTa && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">TA</p><p className="text-sm font-semibold">{record.signosVitalesTa}</p></div>}
+                {record.signosVitalesTemp && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">T°</p><p className="text-sm font-semibold">{record.signosVitalesTemp}</p></div>}
+                {record.peso && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">Peso</p><p className="text-sm font-semibold">{record.peso}</p></div>}
+                {record.talla && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">Talla</p><p className="text-sm font-semibold">{record.talla}</p></div>}
+                {record.areaSuperficieCorporal && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">Área sup. corporal</p><p className="text-sm font-semibold">{record.areaSuperficieCorporal}</p></div>}
+                {record.imc && <div className="bg-muted/40 rounded p-2 text-center"><p className="text-xs text-muted-foreground">IMC</p><p className="text-sm font-semibold">{record.imc}</p></div>}
+              </div>
+            </Section>
+          ) : null}
+          {(record.aspectoGeneral || record.pielMucosas) ? (
+            <Section title="Examen Físico General">
+              <Row label="Aspecto general" value={record.aspectoGeneral} />
+              <Row label="Piel y mucosas" value={record.pielMucosas} />
+            </Section>
+          ) : null}
+          <Section title="Diagnóstico y Tratamiento Odontológico">
+            <Row label="Diagnósticos / problemas odontológicos" value={record.diagnosticos} />
+            <Row label="Plan de tratamiento" value={record.planTratamiento} />
+            <Row label="Presupuesto" value={record.presupuesto} />
+            <Row label="Tratamiento realizado" value={record.tratamientoRealizado} />
           </Section>
-        ) : null}
-
-        {/* Diagnósticos y tratamiento */}
-        <Section title="Diagnóstico y Tratamiento Odontológico">
-          <Row label="Diagnósticos / problemas odontológicos" value={record.diagnosticos} />
-          <Row label="Plan de tratamiento" value={record.planTratamiento} />
-          <Row label="Presupuesto" value={record.presupuesto} />
-          <Row label="Tratamiento realizado" value={record.tratamientoRealizado} />
-        </Section>
-
-        {/* Exámenes complementarios */}
-        {(record.examenRadiografico || record.fotos) ? (
-          <Section title="Exámenes Complementarios">
-            <Row label="Examen radiográfico" value={record.examenRadiografico} />
-            <Row label="Fotos clínicas" value={record.fotos} />
+          {(record.examenRadiografico || record.fotos) ? (
+            <Section title="Exámenes Complementarios">
+              <Row label="Examen radiográfico" value={record.examenRadiografico} />
+              <Row label="Fotos clínicas" value={record.fotos} />
+            </Section>
+          ) : null}
+          <Section title="Resumen Clínico">
+            <Row label="Motivo resumido" value={record.chiefComplaint} />
+            <Row label="Diagnóstico" value={record.diagnosis} />
+            <Row label="Tratamiento" value={record.treatment} />
+            <Row label="Piezas dentales (FDI)" value={record.toothNumbers} />
+            <Row label="Observaciones" value={record.observations} />
+            <Row label="Próxima visita" value={record.nextVisitNotes} />
           </Section>
-        ) : null}
+        </div>
 
-        {/* Resumen clínico */}
-        <Section title="Resumen Clínico">
-          <Row label="Motivo resumido" value={record.chiefComplaint} />
-          <Row label="Diagnóstico" value={record.diagnosis} />
-          <Row label="Tratamiento" value={record.treatment} />
-          <Row label="Piezas dentales (FDI)" value={record.toothNumbers} />
-          <Row label="Observaciones" value={record.observations} />
-          <Row label="Próxima visita" value={record.nextVisitNotes} />
-        </Section>
-
-        {/* Adjuntos: radiografías y fotos */}
         <div className="no-print">
           <Card>
             <CardHeader className="pb-2">
