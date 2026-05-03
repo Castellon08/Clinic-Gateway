@@ -72,7 +72,7 @@ export default function ClinicalRecordsPage() {
                   <Link href={`/clinical-records/${record.id}`}>
                     <Button variant="outline" size="sm" className="shrink-0">
                       <Eye className="h-3.5 w-3.5 mr-1.5" />
-                      Ver / Imprimir
+                      Exportar
                     </Button>
                   </Link>
                 </div>
