@@ -259,18 +259,14 @@ export default function NewClinicalRecordPage() {
               </div>
               <FormField control={form.control} name="aspectoGeneral" render={({ field }) => (<FormItem><FormLabel>Aspecto general</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
               <FormField control={form.control} name="pielMucosas" render={({ field }) => (<FormItem><FormLabel>Piel y mucosas</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
-              <FormItem>
-                <FormLabel>Examen radiográfico</FormLabel>
-                <FormControl>
-                  <Input type="file" accept="image/*,.pdf" onChange={e => setRadiograficoFile(e.target.files?.[0] ?? null)} />
-                </FormControl>
-              </FormItem>
-              <FormItem>
-                <FormLabel>Fotos</FormLabel>
-                <FormControl>
-                  <Input type="file" accept="image/*,.pdf" onChange={e => setFotosFile(e.target.files?.[0] ?? null)} />
-                </FormControl>
-              </FormItem>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Examen radiográfico</label>
+                <Input type="file" accept="image/*,.pdf" onChange={e => setRadiograficoFile(e.target.files?.[0] ?? null)} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Fotos</label>
+                <Input type="file" accept="image/*,.pdf" onChange={e => setFotosFile(e.target.files?.[0] ?? null)} />
+              </div>
               <FormField control={form.control} name="diagnosticos" render={({ field }) => (<FormItem><FormLabel>Diagnósticos o problemas odontológicos</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl></FormItem>)} />
               <FormField control={form.control} name="planTratamiento" render={({ field }) => (<FormItem><FormLabel>Plan de tratamiento odontológico</FormLabel><FormControl><Textarea rows={4} {...field} /></FormControl></FormItem>)} />
               <FormField control={form.control} name="presupuesto" render={({ field }) => (<FormItem><FormLabel>Presupuesto</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl></FormItem>)} />
