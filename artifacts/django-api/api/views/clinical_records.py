@@ -1,11 +1,9 @@
 import base64
-
+from api.models import ClinicalRecord, ClinicalRecordAttachment
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
-from ..models import ClinicalRecord, ClinicalRecordAttachment
 
 ALLOWED_MIME_TYPES = {
     "image/jpeg", "image/png", "image/gif", "image/webp",
@@ -36,6 +34,42 @@ def _record_dict(r):
         "patient": _patient_dict(r.patient),
         "dentist": _user_dict(r.dentist),
         "visitDate": str(r.visit_date),
+        "visitTime": r.visit_time,
+        "doctorName": r.doctor_name,
+        "service": r.service,
+        "age": r.age,
+        "birthPlace": r.birth_place,
+        "sex": r.sex,
+        "procedence": r.procedence,
+        "escolaridad": r.escolaridad,
+        "profession": r.profession,
+        "addressHabitual": r.address_habitual,
+        "fatherName": r.father_name,
+        "motherName": r.mother_name,
+        "motivoConsulta": r.motivo_consulta,
+        "historiaEnfermedadActual": r.historia_enfermedad_actual,
+        "interrogatorioSistemas": r.interrogatorio_sistemas,
+        "antecedentesFamiliares": r.antecedentes_familiares,
+        "enfermedadesInfectocontagiosas": r.enfermedades_infectocontagiosas or [],
+        "enfermedadesHereditarias": r.enfermedades_hereditarias or [],
+        "otrasInfectocontagiosas": r.otras_infectocontagiosas,
+        "otrasHereditarias": r.otras_hereditarias,
+        "signosVitalesFc": r.signos_vitales_fc,
+        "signosVitalesFr": r.signos_vitales_fr,
+        "signosVitalesTa": r.signos_vitales_ta,
+        "signosVitalesTemp": r.signos_vitales_temp,
+        "peso": r.peso,
+        "talla": r.talla,
+        "areaSuperficieCorporal": r.area_superficie_corporal,
+        "imc": r.imc,
+        "aspectoGeneral": r.aspecto_general,
+        "pielMucosas": r.piel_mucosas,
+        "examenRadiografico": r.examen_radiografico,
+        "fotos": r.fotos,
+        "diagnosticos": r.diagnosticos,
+        "planTratamiento": r.plan_tratamiento,
+        "presupuesto": r.presupuesto,
+        "tratamientoRealizado": r.tratamiento_realizado,
         "chiefComplaint": r.chief_complaint,
         "diagnosis": r.diagnosis,
         "treatment": r.treatment,
@@ -51,16 +85,13 @@ class ClinicalRecordListView(APIView):
     def get(self, request):
         qs = ClinicalRecord.objects.select_related("patient", "dentist").all()
         user = request.user
-
         if user.role == "dentist":
             qs = qs.filter(dentist_id=user.pk)
         elif request.query_params.get("dentistId"):
             qs = qs.filter(dentist_id=int(request.query_params["dentistId"]))
-
         if request.query_params.get("patientId"):
             qs = qs.filter(patient_id=int(request.query_params["patientId"]))
-
-        return Response([_record_dict(r) for r in qs.order_by("visit_date")])
+        return Response([_record_dict(r) for r in qs.order_by("-visit_date")])
 
     def post(self, request):
         data = request.data
@@ -69,21 +100,53 @@ class ClinicalRecordListView(APIView):
         visit_date = data.get("visitDate")
         diagnosis = data.get("diagnosis")
         treatment = data.get("treatment")
-
         if not all([patient_id, visit_date, diagnosis, treatment]):
             return Response({"error": "patientId, visitDate, diagnosis, treatment are required"}, status=status.HTTP_400_BAD_REQUEST)
-
         if request.user.role == "dentist":
             dentist_id = request.user.pk
-
         if not dentist_id:
             return Response({"error": "dentistId is required"}, status=status.HTTP_400_BAD_REQUEST)
-
         record = ClinicalRecord.objects.create(
             patient_id=int(patient_id),
             dentist_id=int(dentist_id),
             appointment_id=data.get("appointmentId"),
             visit_date=visit_date,
+            visit_time=data.get("visitTime"),
+            doctor_name=data.get("doctorName"),
+            service=data.get("service"),
+            age=data.get("age"),
+            birth_place=data.get("birthPlace"),
+            sex=data.get("sex"),
+            procedence=data.get("procedence"),
+            escolaridad=data.get("escolaridad"),
+            profession=data.get("profession"),
+            address_habitual=data.get("addressHabitual"),
+            father_name=data.get("fatherName"),
+            mother_name=data.get("motherName"),
+            motivo_consulta=data.get("motivoConsulta"),
+            historia_enfermedad_actual=data.get("historiaEnfermedadActual"),
+            interrogatorio_sistemas=data.get("interrogatorioSistemas"),
+            antecedentes_familiares=data.get("antecedentesFamiliares"),
+            enfermedades_infectocontagiosas=data.get("enfermedadesInfectocontagiosas") or [],
+            enfermedades_hereditarias=data.get("enfermedadesHereditarias") or [],
+            otras_infectocontagiosas=data.get("otrasInfectocontagiosas"),
+            otras_hereditarias=data.get("otrasHereditarias"),
+            signos_vitales_fc=data.get("signosVitalesFc"),
+            signos_vitales_fr=data.get("signosVitalesFr"),
+            signos_vitales_ta=data.get("signosVitalesTa"),
+            signos_vitales_temp=data.get("signosVitalesTemp"),
+            peso=data.get("peso"),
+            talla=data.get("talla"),
+            area_superficie_corporal=data.get("areaSuperficieCorporal"),
+            imc=data.get("imc"),
+            aspecto_general=data.get("aspectoGeneral"),
+            piel_mucosas=data.get("pielMucosas"),
+            examen_radiografico=data.get("examenRadiografico"),
+            fotos=data.get("fotos"),
+            diagnosticos=data.get("diagnosticos"),
+            plan_tratamiento=data.get("planTratamiento"),
+            presupuesto=data.get("presupuesto"),
+            tratamiento_realizado=data.get("tratamientoRealizado"),
             chief_complaint=data.get("chiefComplaint"),
             diagnosis=diagnosis,
             treatment=treatment,
@@ -113,13 +176,9 @@ class ClinicalRecordDetailView(APIView):
         if not r:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
         data = request.data
-        field_map = {
-            "visitDate": "visit_date",
-            "chiefComplaint": "chief_complaint",
-            "toothNumbers": "tooth_numbers",
-            "nextVisitNotes": "next_visit_notes",
-        }
-        for json_key, model_field in field_map.items():
+        for json_key, model_field in {
+            "visitDate": "visit_date","visitTime": "visit_time","doctorName": "doctor_name","service": "service","age": "age","birthPlace": "birth_place","sex": "sex","procedence": "procedence","escolaridad": "escolaridad","profession": "profession","addressHabitual": "address_habitual","fatherName": "father_name","motherName": "mother_name","motivoConsulta": "motivo_consulta","historiaEnfermedadActual": "historia_enfermedad_actual","interrogatorioSistemas": "interrogatorio_sistemas","antecedentesFamiliares": "antecedentes_familiares","enfermedadesInfectocontagiosas": "enfermedades_infectocontagiosas","enfermedadesHereditarias": "enfermedades_hereditarias","otrasInfectocontagiosas": "otras_infectocontagiosas","otrasHereditarias": "otras_hereditarias","signosVitalesFc": "signos_vitales_fc","signosVitalesFr": "signos_vitales_fr","signosVitalesTa": "signos_vitales_ta","signosVitalesTemp": "signos_vitales_temp","peso": "peso","talla": "talla","areaSuperficieCorporal": "area_superficie_corporal","imc": "imc","aspectoGeneral": "aspecto_general","pielMucosas": "piel_mucosas","examenRadiografico": "examen_radiografico","fotos": "fotos","diagnosticos": "diagnosticos","planTratamiento": "plan_tratamiento","presupuesto": "presupuesto","tratamientoRealizado": "tratamiento_realizado","chiefComplaint": "chief_complaint","toothNumbers": "tooth_numbers","nextVisitNotes": "next_visit_notes",
+        }.items():
             if json_key in data:
                 setattr(r, model_field, data[json_key])
         for field in ["diagnosis", "treatment", "observations"]:
@@ -142,50 +201,25 @@ class AttachmentListView(APIView):
 
     def get(self, request, record_id):
         attachments = ClinicalRecordAttachment.objects.filter(clinical_record_id=record_id).order_by("uploaded_at")
-        return Response([{
-            "id": a.id,
-            "clinicalRecordId": a.clinical_record_id,
-            "originalName": a.original_name,
-            "mimeType": a.mime_type,
-            "fileSize": a.file_size,
-            "uploadedAt": a.uploaded_at,
-        } for a in attachments])
+        return Response([{ "id": a.id, "clinicalRecordId": a.clinical_record_id, "originalName": a.original_name, "mimeType": a.mime_type, "fileSize": a.file_size, "uploadedAt": a.uploaded_at } for a in attachments])
 
     def post(self, request, record_id):
         try:
             record = ClinicalRecord.objects.get(pk=record_id)
         except ClinicalRecord.DoesNotExist:
             return Response({"error": "Expediente no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
         if request.user.role == "dentist" and record.dentist_id != request.user.pk:
             return Response({"error": "No tiene permiso"}, status=status.HTTP_403_FORBIDDEN)
-
         uploaded_file = request.FILES.get("file")
         if not uploaded_file:
             return Response({"error": "No se recibió ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
-
         if uploaded_file.content_type not in ALLOWED_MIME_TYPES:
             return Response({"error": "Tipo de archivo no permitido"}, status=status.HTTP_400_BAD_REQUEST)
-
         if uploaded_file.size > 20 * 1024 * 1024:
             return Response({"error": "Archivo demasiado grande (máx. 20 MB)"}, status=status.HTTP_400_BAD_REQUEST)
-
         file_data = base64.b64encode(uploaded_file.read()).decode("utf-8")
-        attachment = ClinicalRecordAttachment.objects.create(
-            clinical_record_id=record_id,
-            original_name=uploaded_file.name,
-            mime_type=uploaded_file.content_type,
-            file_size=uploaded_file.size,
-            file_data=file_data,
-        )
-        return Response({
-            "id": attachment.id,
-            "clinicalRecordId": attachment.clinical_record_id,
-            "originalName": attachment.original_name,
-            "mimeType": attachment.mime_type,
-            "fileSize": attachment.file_size,
-            "uploadedAt": attachment.uploaded_at,
-        }, status=status.HTTP_201_CREATED)
+        attachment = ClinicalRecordAttachment.objects.create(clinical_record_id=record_id, original_name=uploaded_file.name, mime_type=uploaded_file.content_type, file_size=uploaded_file.size, file_data=file_data)
+        return Response({"id": attachment.id, "clinicalRecordId": attachment.clinical_record_id, "originalName": attachment.original_name, "mimeType": attachment.mime_type, "fileSize": attachment.file_size, "uploadedAt": attachment.uploaded_at}, status=status.HTTP_201_CREATED)
 
 
 class AttachmentDownloadView(APIView):
@@ -194,7 +228,6 @@ class AttachmentDownloadView(APIView):
             attachment = ClinicalRecordAttachment.objects.get(pk=attachment_id, clinical_record_id=record_id)
         except ClinicalRecordAttachment.DoesNotExist:
             return Response({"error": "Adjunto no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
         from django.http import HttpResponse
         file_bytes = base64.b64decode(attachment.file_data)
         response = HttpResponse(file_bytes, content_type=attachment.mime_type)
@@ -212,7 +245,6 @@ class AttachmentDeleteView(APIView):
                     return Response({"error": "No tiene permiso"}, status=status.HTTP_403_FORBIDDEN)
             except ClinicalRecord.DoesNotExist:
                 return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-
         try:
             attachment = ClinicalRecordAttachment.objects.get(pk=attachment_id, clinical_record_id=record_id)
         except ClinicalRecordAttachment.DoesNotExist:

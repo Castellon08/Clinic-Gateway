@@ -13,26 +13,21 @@ function formatDate(dateStr: string) {
 
 export default function ClinicalRecordsPage() {
   const [patientFilter, setPatientFilter] = useState<string>("all");
-
   const { data: patientResponse } = useListPatients();
   const patients = patientResponse?.data ?? [];
-
-  const { data: records, isLoading } = useListClinicalRecords(
-    patientFilter !== "all" ? { patientId: Number(patientFilter) } : undefined
-  );
+  const { data: records, isLoading } = useListClinicalRecords(patientFilter !== "all" ? { patientId: Number(patientFilter) } : undefined);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Expedientes Clínicos</h1>
+          <h1 className="text-2xl font-bold text-foreground">Historial Clínico</h1>
           <p className="text-sm text-muted-foreground mt-1">Historial clínico de pacientes</p>
         </div>
         <Link href="/clinical-records/new">
-          <Button><Plus className="h-4 w-4 mr-2" />Nuevo Expediente</Button>
+          <Button><Plus className="h-4 w-4 mr-2" />Nueva Historia Clínica</Button>
         </Link>
       </div>
-
       <div className="flex gap-3">
         <Select value={patientFilter} onValueChange={setPatientFilter}>
           <SelectTrigger className="w-64">
@@ -40,21 +35,18 @@ export default function ClinicalRecordsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los pacientes</SelectItem>
-            {patients.map(p => (
-              <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</SelectItem>
-            ))}
+            {patients.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
-
       {isLoading ? (
         <div className="space-y-3">
-          {[1,2,3,4].map(i=><Skeleton key={i} className="h-24" />)}
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
         </div>
       ) : !records?.length ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground text-sm">
-            {patientFilter !== "all" ? "No hay expedientes para este paciente" : "No hay expedientes clínicos registrados"}
+            {patientFilter !== "all" ? "No hay historias clínicas para este paciente" : "No hay historias clínicas registradas"}
           </CardContent>
         </Card>
       ) : (
@@ -76,9 +68,7 @@ export default function ClinicalRecordsPage() {
                     </div>
                     <p className="text-sm text-foreground font-medium">{record.diagnosis}</p>
                     <p className="text-sm text-muted-foreground mt-0.5">{record.treatment}</p>
-                    {record.toothNumbers && (
-                      <p className="text-xs text-muted-foreground mt-1">Piezas: {record.toothNumbers}</p>
-                    )}
+                    {record.diagnosis && <p className="text-xs text-muted-foreground mt-1">Diagnóstico clínico registrado</p>}
                   </div>
                 </div>
               </CardContent>

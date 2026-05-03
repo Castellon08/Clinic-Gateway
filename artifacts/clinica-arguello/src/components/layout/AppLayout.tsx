@@ -47,7 +47,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, show: true },
     { name: "Pacientes", href: "/patients", icon: Users, show: true },
     { name: "Citas", href: "/appointments", icon: Calendar, show: true },
-    { name: "Expedientes", href: "/clinical-records", icon: FileText, show: true },
+    { name: "Historial Clínico", href: "/clinical-records", icon: FileText, show: true },
     { name: "Facturación", href: "/invoices", icon: Receipt, show: true },
     { name: "Inventario", href: "/inventory", icon: Package, show: !isDentist },
   ].filter(item => item.show);
