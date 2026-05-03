@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Phone, Mail, MapPin, Heart, AlertCircle, Calendar, FileText, Receipt, User, Grid3X3 } from "lucide-react";
-import { Odontogram, OdontogramData } from "@/components/Odontogram";
+import { Odontogram, serializeOdontogram, parseOdontogram } from "@/components/Odontogram";
 import { RecordAttachments } from "@/components/RecordAttachments";
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,14 +66,14 @@ export default function PatientDetailPage() {
   const { data: records } = useListClinicalRecords({ patientId });
   const { data: invoices } = useListInvoices({ patientId });
 
-  const handleOdontogramChange = useCallback(async (data: OdontogramData) => {
+  const handleOdontogramChange = useCallback(async (value: string) => {
     setSavingOdonto(true);
     try {
       const token = localStorage.getItem("clinica_token");
       const res = await fetch(`/api/patients/${patientId}/odontogram`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ odontogramData: data }),
+        body: JSON.stringify({ odontogramData: value }),
       });
       if (!res.ok) throw new Error("Failed to save");
       queryClient.invalidateQueries({ queryKey: getGetPatientQueryKey(patientId) });
@@ -105,7 +105,8 @@ export default function PatientDetailPage() {
   }
 
   const age = calcAge(patient.birthDate);
-  const odontogramData = ((patient as unknown as { odontogramData?: OdontogramData }).odontogramData) ?? {};
+  const rawOdontogram = (patient as unknown as { odontogramData?: string | Record<string, unknown> }).odontogramData;
+  const odontogramValue = typeof rawOdontogram === "string" ? rawOdontogram : rawOdontogram ? serializeOdontogram(parseOdontogram(JSON.stringify(rawOdontogram))) : "";
 
   return (
     <div className="space-y-6">
@@ -222,7 +223,7 @@ export default function PatientDetailPage() {
             </CardHeader>
             <CardContent>
               <Odontogram
-                data={odontogramData}
+                value={odontogramValue}
                 onChange={handleOdontogramChange}
                 readonly={false}
               />
