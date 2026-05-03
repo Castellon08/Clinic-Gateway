@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecordAttachments } from "@/components/RecordAttachments";
 import { ArrowLeft, Printer } from "lucide-react";
+import { useEffect, useState } from "react";
 
 function getToken() {
   return localStorage.getItem("clinica_token") ?? "";
@@ -13,6 +14,10 @@ function getToken() {
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return "—";
   return new Date(dateStr + "T12:00:00").toLocaleDateString("es-NI", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function getAuthToken() {
+  return localStorage.getItem("clinica_token") ?? "";
 }
 
 function Row({ label, value }: { label: string; value?: string | string[] | null }) {
@@ -95,6 +100,7 @@ interface ClinicalRecord {
 export default function ClinicalRecordDetailPage() {
   const { id } = useParams<{ id: string }>();
   const recordId = Number(id);
+  const [printReady, setPrintReady] = useState(false);
 
   const { data: record, isLoading } = useQuery<ClinicalRecord>({
     queryKey: ["clinical-records", recordId],
@@ -109,8 +115,15 @@ export default function ClinicalRecordDetailPage() {
   });
 
   const handlePrint = () => {
-    window.print();
+    setPrintReady(true);
+    requestAnimationFrame(() => window.print());
   };
+
+  useEffect(() => {
+    const onAfterPrint = () => setPrintReady(false);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => window.removeEventListener("afterprint", onAfterPrint);
+  }, []);
 
   if (isLoading) {
     return (
@@ -147,6 +160,7 @@ export default function ClinicalRecordDetailPage() {
           body > #root > *:not(.print-root) { display: none !important; }
           .no-print { display: none !important; }
           .print-root { display: block !important; }
+          .print-hidden { display: none !important; }
           .print-root .history-print { display: block !important; }
           .print-root .history-print > * { break-inside: avoid; page-break-inside: avoid; }
           .print-root .print-header { display: block !important; }
@@ -154,7 +168,7 @@ export default function ClinicalRecordDetailPage() {
         }
       `}</style>
 
-      <div className="space-y-6 max-w-4xl print:max-w-none print-root">
+      <div className={`space-y-6 max-w-4xl print:max-w-none print-root ${printReady ? "print-hidden" : ""}`}>
         {/* Header */}
         <div className="flex items-center justify-between no-print">
           <div className="flex items-center gap-3">

@@ -27,6 +27,7 @@ const schema = z.object({
   visitDate: z.string().min(1, "Fecha requerida"),
   visitTime: z.string().optional(),
   doctorName: z.string().optional(),
+  doctorMinsaCode: z.string().regex(/^[a-zA-Z0-9]*$/, "Solo letras y números").optional(),
   service: z.string().optional(),
   age: z.string().optional(),
   birthPlace: z.string().optional(),
@@ -92,6 +93,7 @@ export default function NewClinicalRecordPage() {
       visitDate: new Date().toISOString().split("T")[0],
       visitTime: "",
       doctorName: "",
+      doctorMinsaCode: "",
       service: "",
       age: "",
       birthPlace: "",
@@ -137,6 +139,7 @@ export default function NewClinicalRecordPage() {
   const patients = patientResponse?.data ?? [];
   const { data: users } = useListUsers();
   const dentists = users?.filter(u => u.role === "dentist" || u.role === "admin");
+  const isAdmin = me?.role === "admin";
 
   const uploadAttachment = async (recordId: number, file: File) => {
     const formData = new FormData();
@@ -224,6 +227,7 @@ export default function NewClinicalRecordPage() {
                 <FormField control={form.control} name="visitDate" render={({ field }) => (<FormItem><FormLabel>Fecha</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="visitTime" render={({ field }) => (<FormItem><FormLabel>Hora</FormLabel><FormControl><Input placeholder="08:00" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="doctorName" render={({ field }) => (<FormItem><FormLabel>Nombre del doctor que examina</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                {isAdmin && <FormField control={form.control} name="doctorMinsaCode" render={({ field }) => (<FormItem><FormLabel>Código MINSA del doctor</FormLabel><FormControl><Input placeholder="Alfanumérico" {...field} /></FormControl><FormMessage /></FormItem>)} />}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="service" render={({ field }) => (<FormItem><FormLabel>Servicio odontológico</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
