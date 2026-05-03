@@ -33,8 +33,8 @@ export default function NewInvoicePage() {
   const debouncedSearch = useDebounce(patientSearch, 300);
   const [patientId, setPatientId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("");
-  const [markupPercent, setMarkupPercent] = useState<number>(0);
-  const [exchangeRate, setExchangeRate] = useState<number>(0);
+  const [markupPercent, setMarkupPercent] = useState<string>("0");
+  const [exchangeRate, setExchangeRate] = useState<string>("0");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, unitPrice: 0, unitPriceUsd: 0 }]);
 
   const { data: patientResponse } = useListPatients(debouncedSearch ? { search: debouncedSearch } : undefined);
@@ -50,9 +50,11 @@ export default function NewInvoicePage() {
     setItems((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
   }
 
+  const markupPercentValue = Number(markupPercent) || 0;
+  const exchangeRateValue = Number(exchangeRate) || 0;
   const baseSubtotal = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
-  const baseSubtotalUsd = exchangeRate > 0 ? baseSubtotal / exchangeRate : 0;
-  const total = baseSubtotal + baseSubtotal * (markupPercent / 100);
+  const baseSubtotalUsd = exchangeRateValue > 0 ? baseSubtotal / exchangeRateValue : 0;
+  const total = baseSubtotal + baseSubtotal * (markupPercentValue / 100);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,7 +118,7 @@ export default function NewInvoicePage() {
                     type="text"
                     inputMode="decimal"
                     value={markupPercent}
-                    onChange={(e) => setMarkupPercent(Number(e.target.value))}
+                    onChange={(e) => setMarkupPercent(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -125,7 +127,7 @@ export default function NewInvoicePage() {
                     type="text"
                     inputMode="decimal"
                     value={exchangeRate}
-                    onChange={(e) => setExchangeRate(Number(e.target.value))}
+                    onChange={(e) => setExchangeRate(e.target.value)}
                   />
                 </div>
               </div>
@@ -149,7 +151,7 @@ export default function NewInvoicePage() {
                 </div>
                 <div className="w-20">
                   <label className="text-xs text-muted-foreground mb-1 block">Cantidad</label>
-                  <Input type="text" inputMode="numeric" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} />
+                  <Input type="text" inputMode="decimal" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} />
                 </div>
                 <div className="w-28">
                   <label className="text-xs text-muted-foreground mb-1 block">Precio unit.</label>
@@ -177,9 +179,9 @@ export default function NewInvoicePage() {
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Subtotal</p>
                 <p className="text-lg font-semibold text-foreground">{formatCurrency(baseSubtotal)}</p>
-                <p className="text-sm text-muted-foreground">Reducción / porcentaje: {markupPercent.toFixed(2)}%</p>
+                <p className="text-sm text-muted-foreground">Reducción / porcentaje: {markupPercentValue.toFixed(2)}%</p>
                 <p className="text-xl font-bold text-foreground">Total con reducción: {formatCurrency(total)}</p>
-                {isAdmin && exchangeRate > 0 && (
+                {isAdmin && exchangeRateValue > 0 && (
                   <p className="text-sm text-muted-foreground">Subtotal en dólar: ${baseSubtotalUsd.toFixed(2)}</p>
                 )}
               </div>
