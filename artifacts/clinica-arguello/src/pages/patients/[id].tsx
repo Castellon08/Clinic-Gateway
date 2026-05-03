@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Phone, Mail, MapPin, Heart, AlertCircle, Calendar, FileText, Receipt, User, Grid3X3 } from "lucide-react";
 import { Odontogram, OdontogramData } from "@/components/Odontogram";
+import { RecordAttachments } from "@/components/RecordAttachments";
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -291,6 +292,7 @@ export default function PatientDetailPage() {
                         {record.nextVisitNotes && <p className="text-xs text-muted-foreground mt-1 italic">Próxima visita: {record.nextVisitNotes}</p>}
                       </div>
                     </div>
+                    <RecordAttachments recordId={record.id} />
                   </CardContent>
                 </Card>
               ))}
