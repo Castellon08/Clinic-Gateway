@@ -1,5 +1,6 @@
 import base64
 from api.models import ClinicalRecord, ClinicalRecordAttachment
+from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,13 +8,6 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 def _record_qs():
     return ClinicalRecord.objects.select_related("patient", "dentist")
-
-ALLOWED_MIME_TYPES = {
-    "image/jpeg", "image/png", "image/gif", "image/webp",
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-}
 
 
 def _user_dict(u):
@@ -218,12 +212,8 @@ class AttachmentListView(APIView):
         uploaded_file = request.FILES.get("file")
         if not uploaded_file:
             return Response({"error": "No se recibió ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
-        if uploaded_file.content_type not in ALLOWED_MIME_TYPES:
-            return Response({"error": "Tipo de archivo no permitido"}, status=status.HTTP_400_BAD_REQUEST)
-        if uploaded_file.size > 20 * 1024 * 1024:
-            return Response({"error": "Archivo demasiado grande (máx. 20 MB)"}, status=status.HTTP_400_BAD_REQUEST)
         file_data = base64.b64encode(uploaded_file.read()).decode("utf-8")
-        attachment = ClinicalRecordAttachment.objects.create(clinical_record_id=record_id, original_name=uploaded_file.name, mime_type=uploaded_file.content_type, file_size=uploaded_file.size, file_data=file_data)
+        attachment = ClinicalRecordAttachment.objects.create(clinical_record_id=record_id, original_name=uploaded_file.name, mime_type=uploaded_file.content_type or "application/octet-stream", file_size=uploaded_file.size, file_data=file_data)
         return Response({"id": attachment.id, "clinicalRecordId": attachment.clinical_record_id, "originalName": attachment.original_name, "mimeType": attachment.mime_type, "fileSize": attachment.file_size, "uploadedAt": attachment.uploaded_at}, status=status.HTTP_201_CREATED)
 
 

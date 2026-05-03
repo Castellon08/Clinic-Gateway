@@ -263,11 +263,11 @@ export default function NewClinicalRecordPage() {
               <FormField control={form.control} name="pielMucosas" render={({ field }) => (<FormItem><FormLabel>Piel y mucosas</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
               <div className="space-y-2">
                 <label className="text-sm font-medium">Examen radiográfico</label>
-                <Input type="file" accept="image/*,.pdf" onChange={e => setRadiograficoFile(e.target.files?.[0] ?? null)} />
+                <Input type="file" accept="*/*,.dcm,.dicom" onChange={e => setRadiograficoFile(e.target.files?.[0] ?? null)} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Fotos</label>
-                <Input type="file" accept="image/*,.pdf" onChange={e => setFotosFile(e.target.files?.[0] ?? null)} />
+                <Input type="file" accept="*/*" onChange={e => setFotosFile(e.target.files?.[0] ?? null)} />
               </div>
               <FormField control={form.control} name="diagnosticos" render={({ field }) => (<FormItem><FormLabel>Diagnósticos o problemas odontológicos</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl></FormItem>)} />
               <FormField control={form.control} name="planTratamiento" render={({ field }) => (<FormItem><FormLabel>Plan de tratamiento odontológico</FormLabel><FormControl><Textarea rows={4} {...field} /></FormControl></FormItem>)} />
