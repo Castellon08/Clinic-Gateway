@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecordAttachments } from "@/components/RecordAttachments";
 import { ArrowLeft, FileDown } from "lucide-react";
+import { Odontogram } from "@/components/Odontogram";
 
 function getToken() {
   return localStorage.getItem("clinica_token") ?? "";
@@ -426,7 +427,10 @@ export default function ClinicalRecordDetailPage() {
         <Row label="Motivo resumido" value={record.chiefComplaint} />
         <Row label="Diagnóstico" value={record.diagnosis} />
         <Row label="Tratamiento" value={record.treatment} />
-        <Row label="Piezas dentales (FDI)" value={record.toothNumbers} />
+        <div className="py-2">
+          <p className="text-sm font-medium mb-2">Odontograma</p>
+          <Odontogram value={record.toothNumbers} />
+        </div>
         <Row label="Observaciones" value={record.observations} />
         <Row label="Próxima visita" value={record.nextVisitNotes} />
       </Section>

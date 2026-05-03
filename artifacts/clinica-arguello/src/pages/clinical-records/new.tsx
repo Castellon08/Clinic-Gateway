@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
+import { Odontogram } from "@/components/Odontogram";
 
 const schema = z.object({
   patientId: z.string().min(1, "Paciente requerido"),
@@ -278,7 +279,7 @@ export default function NewClinicalRecordPage() {
                   <FormField control={form.control} name="chiefComplaint" render={({ field }) => (<FormItem><FormLabel>Motivo resumido</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                   <FormField control={form.control} name="diagnosis" render={({ field }) => (<FormItem><FormLabel>Diagnóstico *</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="treatment" render={({ field }) => (<FormItem><FormLabel>Tratamiento *</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="toothNumbers" render={({ field }) => (<FormItem><FormLabel>Piezas dentales (FDI)</FormLabel><FormControl><Input placeholder="Ej: 11, 21, 36, 46" {...field} /></FormControl></FormItem>)} />
+                  <FormField control={form.control} name="toothNumbers" render={({ field }) => (<FormItem><FormLabel>Odontograma</FormLabel><FormControl><Odontogram value={field.value} onChange={field.onChange} /></FormControl></FormItem>)} />
                   <FormField control={form.control} name="observations" render={({ field }) => (<FormItem><FormLabel>Observaciones</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl></FormItem>)} />
                   <FormField control={form.control} name="nextVisitNotes" render={({ field }) => (<FormItem><FormLabel>Próxima visita</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                 </CardContent>
