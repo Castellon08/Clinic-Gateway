@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Paperclip, Upload, Trash2, Download, FileText, Image, File } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/api-url";
 
 interface Attachment {
   id: number;
@@ -41,6 +42,7 @@ export function RecordAttachments({ recordId }: { recordId: number }) {
     queryKey,
     queryFn: async () => {
       const res = await fetch(`/api/clinical-records/${recordId}/attachments`, {
+      const res = await fetch(apiUrl(`/api/clinical-records/${recordId}/attachments`), {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error("Error al cargar adjuntos");
@@ -50,7 +52,7 @@ export function RecordAttachments({ recordId }: { recordId: number }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (attachmentId: number) => {
-      const res = await fetch(`/api/clinical-records/${recordId}/attachments/${attachmentId}`, {
+      const res = await fetch(apiUrl(`/api/clinical-records/${recordId}/attachments/${attachmentId}`), {
         method: "DELETE",
         headers: { Authorization: `Bearer ${getToken()}` },
       });
@@ -70,7 +72,7 @@ export function RecordAttachments({ recordId }: { recordId: number }) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/clinical-records/${recordId}/attachments`, {
+      const res = await fetch(apiUrl(`/api/clinical-records/${recordId}/attachments`), {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
         body: formData,
@@ -96,10 +98,8 @@ export function RecordAttachments({ recordId }: { recordId: number }) {
 
   const handleDownload = (attachment: Attachment) => {
     const link = document.createElement("a");
-    link.href = `/api/clinical-records/${recordId}/attachments/${attachment.id}/download`;
-    link.setAttribute("Authorization", `Bearer ${getToken()}`);
     const token = getToken();
-    fetch(`/api/clinical-records/${recordId}/attachments/${attachment.id}/download`, {
+    fetch(apiUrl(`/api/clinical-records/${recordId}/attachments/${attachment.id}/download`), {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.blob())
